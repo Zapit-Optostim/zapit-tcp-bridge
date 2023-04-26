@@ -47,15 +47,12 @@ end
 
 if strcmpi(trial_state_commands_dict(trial_state_command), 'sendsamples')
     % if trial_state_command = "sendsamples"
-    zapit_com_bytes = [state_command_byte, arg_keys_byte, arg_values_byte, conditionNum_byte];
-    %zapit_com_ints = [trial_state_command, arg_keys_int, arg_values_int, conditionNum_int];
+    zapit_com_bytes = {state_command_byte, arg_keys_byte, arg_values_byte, conditionNum_byte};
+    %zapit_com_ints = {trial_state_command, arg_keys_int, arg_values_int, conditionNum_int};
 else
-    zapit_com_bytes = [state_command_byte, uint8(0), uint8(0), uint8(0)];
-    %zapit_com_ints = [trial_state_command, 0, 0, 0];
+    zapit_com_bytes = {state_command_byte, uint8(0), uint8(0), uint8(0)};
+    %zapit_com_ints = {trial_state_command, 0, 0, 0};
 end
-
-zapit_com_bytes = transpose(zapit_com_bytes);
-%zapit_com_ints = transpose(zapit_com_ints);
 
 end
 

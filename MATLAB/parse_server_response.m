@@ -10,7 +10,7 @@ function [status, server_response_ints] = parse_server_response(zapit_byte_tuple
         status = 'Connected';
     else
         datetime_str = datetime_float_to_str(datetime_double);
-        if message_type_byte ~= zapit_byte_tuple(1) % check that Zapit is responding to the right message_type (e.g. sendSamples) else throw an error   
+        if message_type_byte ~= zapit_byte_tuple{1} % check that Zapit is responding to the right message_type (e.g. sendSamples) else throw an error   
             status = 'Mismatch';
         else
             status = datetime_str;

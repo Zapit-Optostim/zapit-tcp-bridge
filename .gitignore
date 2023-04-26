@@ -169,3 +169,6 @@ obj/*
 bin/
 bin/*
 
+# MATLAB files
+*.asv
+
