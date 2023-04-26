@@ -194,7 +194,7 @@ The tuple of integers will contain `response_byte_tuple` as integers. Therefore,
 
 <br>
 
-The syntax for Bonsai is different from either Python or Matlab.  The constructor is called at subscription.  Calling the `connect` method is done by sending a message with the command byte (the first byte) set to `255`.  Calling the `close` method is done by sending a message with the command byte set set to `254`.  Any other values for the command byte will call the `send_receive` method.  Calling `send_receive` whilst a message is still being handled will result in a error reply being generate (i.e., status byte = -1).  The destructor is called when the node is unsubscribed from.
+The syntax for Bonsai is different from either Python or Matlab.  The constructor is called at subscription.  Calling the `connect` method is done by sending a message with the command byte (the first byte) set to `255`.  Calling the `close` method is done by sending a message with the command byte set set to `254`.  Any other values for the command byte will call the `send_receive` method.  Calling `send_receive` whilst a message is still being handled will result in a error reply being generate (i.e., status = `-1`).  The destructor is called when the node is unsubscribed from.
 
 For a quick demonstration of how the TCP communication works in Bonsai, open the file located at `'zapit-tcp-bridge\Bonsai\Bonsai_Demo'`. There should be 4 grouped workflows at the top: `trial_command`, `arg_keys`, `arg_values` and `Variables` (you can ignore this last one). Clicking on either of these first three nodes will allow you to select the `trial_command`, `arg_keys`,  and `arg_values`. Let's consider a similar example to the one above, with:
 
