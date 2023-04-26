@@ -10,11 +10,11 @@
   <Workflow>
     <Nodes>
       <Expression xsi:type="GroupWorkflow">
-        <Name>trial_state_command</Name>
+        <Name>trial_command</Name>
         <Workflow>
           <Nodes>
             <Expression xsi:type="ExternalizedMapping">
-              <Property Name="Value" DisplayName="trial_state_command" />
+              <Property Name="Value" DisplayName="trial_command" />
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="ByteProperty">
@@ -22,7 +22,7 @@
               </Combinator>
             </Expression>
             <Expression xsi:type="rx:BehaviorSubject">
-              <Name>trial_state_command</Name>
+              <Name>trial_command_byte</Name>
             </Expression>
             <Expression xsi:type="WorkflowOutput" />
           </Nodes>
@@ -34,7 +34,7 @@
         </Workflow>
       </Expression>
       <Expression xsi:type="GroupWorkflow">
-        <Name>ag_keys</Name>
+        <Name>arg_keys</Name>
         <Workflow>
           <Nodes>
             <Expression xsi:type="ExternalizedMapping">
@@ -75,7 +75,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="BooleanProperty">
-                <Value>true</Value>
+                <Value>false</Value>
               </Combinator>
             </Expression>
             <Expression xsi:type="rx:BehaviorSubject">
@@ -86,7 +86,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="BooleanProperty">
-                <Value>false</Value>
+                <Value>true</Value>
               </Combinator>
             </Expression>
             <Expression xsi:type="rx:BehaviorSubject">
@@ -138,7 +138,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="BooleanProperty">
-                <Value>true</Value>
+                <Value>false</Value>
               </Combinator>
             </Expression>
             <Expression xsi:type="rx:BehaviorSubject">
@@ -160,7 +160,7 @@
             </Expression>
             <Expression xsi:type="Combinator">
               <Combinator xsi:type="IntProperty">
-                <Value>3</Value>
+                <Value>4</Value>
               </Combinator>
             </Expression>
             <Expression xsi:type="rx:BehaviorSubject">
@@ -410,7 +410,7 @@
         </Workflow>
       </Expression>
       <Expression xsi:type="rx:SelectMany">
-        <Name>gen_Zapit_byte_tuple</Name>
+        <Name>Gen_Zapit_Byte_Tuple</Name>
         <Workflow>
           <Nodes>
             <Expression xsi:type="WorkflowInput">
@@ -1044,7 +1044,7 @@
               <Workflow>
                 <Nodes>
                   <Expression xsi:type="SubscribeSubject">
-                    <Name>trial_state_command</Name>
+                    <Name>trial_command_byte</Name>
                   </Expression>
                   <Expression xsi:type="rx:Condition">
                     <Name>not_sendsamples</Name>
@@ -1351,7 +1351,7 @@
                           <Workflow>
                             <Nodes>
                               <Expression xsi:type="SubscribeSubject">
-                                <Name>trial_state_command_byte</Name>
+                                <Name>trial_command_byte</Name>
                               </Expression>
                               <Expression xsi:type="WorkflowOutput" />
                             </Nodes>

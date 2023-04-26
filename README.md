@@ -196,6 +196,39 @@ The tuple of integers will contain `response_byte_tuple` as integers. Therefore,
 
 The syntax for Bonsai is different from either Python or Matlab.  The constructor is called at subscription.  Calling the `connect` method is done by sending a message with the command byte (the first byte) set to `255`.  Calling the `close` method is done by sending a message with the command byte set set to `254`.  Any other values for the command byte will call the `send_receive` method.  Calling `send_receive` whilst a message is still being handled will result in a error reply being generate (i.e., status byte = -1).  The destructor is called when the node is unsubscribed from.
 
+For a quick demonstration of how the TCP communication works in Bonsai, open the file located at `'zapit-tcp-bridge\Bonsai\Bonsai_Demo'`. There should be 4 grouped workflows at the top: `trial_command`, `arg_keys`, `arg_values` and `Variables` (you can ignore this last one). Clicking on either of these first three nodes will allow you to select the `trial_command`, `arg_keys`,  and `arg_values`. Let's consider a similar example to the one above, with:
+
+```
+-  trial__command = 1
+-  arg_keys:
+   - conditionNum_channel =  True
+   - laser_channel = True
+   - hardwareTriggered_channel = False
+   - logging_channel = False
+   - verbose_channel = True
+ - arg_values:
+   - conditionNum = 4
+   - laser_ON = True
+   - hardwareTriggered_ON = False
+   - logging_ON = False
+   - verbose_ON = False
+```
+
+Once you have set these parameters, launch the program by clicking the green `Start` button at the top left. The workflow is built to respond to key-presses (hence the `KeyDown` node) that emulate the Start/Connection (key S), Trial (key T), and End/Disconnection (key E) of an experimental session (this is the work of the `Set_Session_Epoch` node). The `Gen_Zapit_Byte_Tuple`, `Gen_Zapit_Byte_Tuple` and `Parse_Server_Response` nodes behave in the same way as the functions in the Python demonstration with the same names. Importantly, all of the nodes following the `KeyDown` execute in sequence once a key pressed. Right clicking on the nodes will allow you to select `Show Visualizer > Bonsai.Design.ObjectTextVisualizer` and print the outputs of the `Gen_Zapit_Byte_Tuple` and `Parse_Server_Response` nodes on the screen. Using the example above, pressing `S` should yield:
+-  `(255, 19, 2, 4)` in the `Gen_Zapit_Byte_Tuple` window 
+-  `(Connected, (1, 1))` in the `Parse_Server_Response` window
+
+Pressing T should yield:
+-  `(1, 19, 2, 4)` in the `Gen_Zapit_Byte_Tuple` window 
+-  `(2023-04-26 20:08:24.183945, (4, 1))` in the `Parse_Server_Response` window
+
+Finally, pressing E should yield:
+-  `(254, 19, 2, 4)` in the `Gen_Zapit_Byte_Tuple` window 
+-  `(Disconnected, (0, 0))` in the `Parse_Server_Response` window
+
+Note that if you do not respect this `S --> T*n --> E` order, `Parse_Server_Response` will output `Error` along with a integer tuple depending on how the required key-press order has been violated.
+
+
 ## MATLAB
 
 <br>
