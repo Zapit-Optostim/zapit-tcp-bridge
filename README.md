@@ -196,8 +196,8 @@ The tuple of integers will contain `response_byte_tuple` as integers. Therefore,
 
 The syntax for Bonsai is different from either Python or Matlab.  The constructor is called at subscription.  Calling the `connect` method is done by sending a message with the command byte (the first byte) set to `255`.  Calling the `close` method is done by sending a message with the command byte set set to `254`.  Any other values for the command byte will call the `send_receive` method.  Calling `send_receive` whilst a message is still being handled will result in a error reply being generate (i.e., status byte = -1).  The destructor is called when the node is unsubscribed from.
 
-## MATLAB worked example
+## MATLAB
 
 <br>
 
-The MATLAB `demo.m` and `TCPclient.m` operate in exactly the same way as for the Python `demo.py` and `TCPclient.py`, with the only difference being that python `tuples` are replaced by MATLAB `cell arrays`.
+The MATLAB `demo.m` and `TCPclient.m` operate in exactly the same way as for the Python `demo.py` and `TCPclient.py`, with the only difference being that python `tuples` are replaced by MATLAB `cell arrays`.  
