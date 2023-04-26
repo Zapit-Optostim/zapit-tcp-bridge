@@ -81,8 +81,6 @@ The server is implemented in the main Zapit repo in the `zapit\zapit\+zapit\+int
 The server is designed to read messages of 4 bytes.  These are parsed and the respective functions are called to control zapit.  Processing of the message is done by the `processBufferMessageCallback.m` function.
 
 
-
-
 <br>
 
 ## Python worked example
@@ -91,7 +89,7 @@ The server is designed to read messages of 4 bytes.  These are parsed and the re
 
 ### **Generating a communication tuple**
 
-As described above, messages to the server must always consist of 4 bytes: the command number, the argument keys, the argument values, and the condition number. Now let's say we want to send the command number 1 (sendSamples), we wish to communicate along the conditionNum, laserOn and verbose channels, and we wish to set the conditionNum to 4, laserOn to True and verbose to False (n.b. remember that if the command number is anything else than 1, all other bytes will be set to 0).
+As described above, messages to the server must always consist of 4 bytes: the command (indicated by a number), the argument keys, the argument values, and the condition number. Now let's say we want to send the command number 1 (sendSamples), we wish to communicate along the `conditionNum`, `laserOn` and `verbose` channels, and we wish to set the `conditionNum` to `4`, `laserOn` to `True` and `verbose` to `False` (n.b. remember that if the command number is anything else than 1, all other bytes will be set to 0).
 In order to send this command to the server, we must first generate a byte tuple containing this information. We can do this by calling the `gen_Zapit_byte_tuple` function from the `Python_TCP_Utils` module. First we import the module:
 
 ```python
@@ -116,7 +114,9 @@ Printing `zapit_byte_tuple` should yield:
 [b'\x01', b'\x13', b'\x02', b'\x04']
 ```
 
-Unless you are used to working with binary data or low-level programming languages, this result is probably quite cryptic. Let's dig a little bit to understand what it means. We can convert this byte tuple into a integer tuple using list comprehension:
+Unless you are used to working with binary data or low-level programming languages, this result is probably quite cryptic. Let's dig a little bit to understand what it means. 
+
+We can convert this byte tuple into a integer tuple using list comprehension:
 
 ```python
 zapit_int_tuple = tuple([int(b[0]) for b in zapit_byte_tuple])
@@ -124,7 +124,7 @@ print(zapit_int_tuple)
 (1, 19, 2, 4)
 ```
 
-Now what do these integers represent? What the gen_Zapit_byte_tuple() function is actually doing is using bitmasks to represent the set of boolean and integer values that are being communicated with the server. Specifically. it is mapping boolean keys and values to integer values and then multiplying them together to produce integers with specific patterns. This is done using 3 dictionaries, mapping argument keys to integers, argument values to integers, and booleans to integers, respectively. We can view these three dictionaries below:
+What do these integers represent? What the gen_Zapit_byte_tuple() function is actually doing is using **[bitmasks](https://en.wikipedia.org/wiki/Mask_(computing))** to represent the set of boolean and integer values that are being communicated with the server. It is mapping boolean keys and values to integer values and then combining them together to produce integers with specific patterns. This is done using 3 dictionaries, mapping argument keys to integers, argument values to integers, and booleans to integers, respectively. We can view these three dictionaries below:
 
 ```python
 keys_to_int_dict = {"conditionNum_channel": 1, "laser_channel": 2, "hardwareTriggered_channel": 4,
@@ -153,6 +153,7 @@ Then, we need to crate an instance of the TCPclient class:
 ```python
 client = TCPclient()
 ```
+When called with no arguments the client initialises with the default arguments of `tcp_port = 1488, tcp_ip = "127.0.0.1"`, which allows for connections on the `localHost`.  These are the same default settings for the Bonsai and MATLAB clients and the server.  If you wanted to connect to a different port or IP-address, these parameters would need to be specified when the client is initialised (again, this is the same for the clients in the other languages).
 
 We can now call the `connect()` method of the `TCPclient` class to establish a connection with the server:
 ```python
