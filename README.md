@@ -186,7 +186,7 @@ This function returns a tuple containing a status string and a tuple of integers
 - 'Mismatch': The trial command of the server response did not match the trial command of zapit_byte_tuple (its first element).
 - datetime_str: The datetime as a string, formatted using the `datetime_float_to_str()` function. <br> 
   
-The tuple of integers will contain `response_byte_tuple` as integers. Therefore, in our case, the function will return: `('2023-04-26 20:08:24.183945', (4, 1))` (current datetime, conditionNum `4` and LaserOn `1`).
+The tuple of integers will contain `response_byte_tuple` as integers. Therefore, in our case, the function will return: `('2023-04-26 20:08:24.183945', (4, 1))` (current datetime, `conditionNum` as `4` and `LaserOn` as `1`).
 
 <br>
 
