@@ -153,7 +153,7 @@ Then, we need to crate an instance of the TCPclient class:
 ```python
 client = TCPclient()
 ```
-When called with no arguments the client initialises with the default arguments of `tcp_port = 1488, tcp_ip = "127.0.0.1"`, which allows for connections on the `localHost`.  These are the same default settings for the Bonsai and MATLAB clients and the server.  If you wanted to connect to a different port or IP-address, these parameters would need to be specified when the client is initialised (again, this is the same for the clients in the other languages).
+When called with no arguments the client initialises with the default arguments of `tcp_port = 1488, tcp_ip = "127.0.0.1"`, which allows for connections on the `localHost`.  These are the same default settings for the Bonsai and MATLAB clients and the server.  If you wanted to connect to a different port or IP-address, these parameters would need to be specified when the client is initialised (again, this is the same for the clients in the other languages).  For example, to connect to a machine with an IP-address of `127.135.35.1` on port `1672` you would create a client with the following command `client = TCPclient(tcp_port = 1672, tcp_ip = "127.135.35.1")`
 
 We can now call the `connect()` method of the `TCPclient` class to establish a connection with the server:
 ```python
