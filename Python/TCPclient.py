@@ -11,7 +11,7 @@ class TCPclient():
 
         
     def connect(self) -> tuple:
-        if ~self.connected:
+        if self.connected is False:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.s.connect((self.tcp_ip,self.tcp_port))
             self.connected   = True
@@ -19,7 +19,7 @@ class TCPclient():
         else:
             return (-1.0,b"\x00",b"\x01",b"\x00") # Message to connect whilst already connected
     
-    def send_recieve(self, message: tuple[bytes]) -> tuple:
+    def send_receive(self, message: tuple[bytes]) -> tuple:
         if message[0] == (255).to_bytes(1, 'big'):
             return self.connect()
         elif message[0] == (254).to_bytes(1, 'big'):
@@ -31,9 +31,9 @@ class TCPclient():
         self.s.send(message_byte_obj)
         reply = self.s.recv(self.buffer_size)
         timestamp = struct.unpack('d',reply[0:8])[0]
-        comm_byte = reply[8]
-        resp_byte0 = reply[9]
-        resp_byte1 = reply[10]
+        comm_byte = reply[8:9]
+        resp_byte0 = reply[9:10]
+        resp_byte1 = reply[10:]
         return (timestamp, comm_byte, resp_byte0, resp_byte1)
 
     
@@ -51,10 +51,10 @@ class TCPclient():
             self.s.close()
             print(f"Connection to port {self.tcp_port}  at address {self.tcp_ip} closed")
             return (-1.0,b"\x01",b"\x00",b"\x00") # Message to disconnect whilst connected
-    
+
+        
 def main():
-    comm = TCPclient()
-    
+    pass
     
 
 if __name__ == "__main__":

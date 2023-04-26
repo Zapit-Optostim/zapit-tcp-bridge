@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Net.Sockets;
 using Bonsai.Reactive;
+using System.Security.Cryptography;
 
 [Combinator]
 [Description("")]
@@ -91,7 +92,7 @@ public class zapit_TCPclient
                 this.client.Close();
                 Console.WriteLine("Connection to port " + this.tcp_port + " at address " + this.tcp_ip + " closed");
                 this.connected = false;
-                return Tuple.Create(-1.0, (byte)1, (byte)0, (byte)0);
+                return Tuple.Create(-2.0, (byte)1, (byte)0, (byte)0);
             }
             else if (val.Item1 == 254 && !this.connected)
             {

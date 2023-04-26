@@ -27,4 +27,4 @@ import zapit.interfaces.TCPclient;
 %% Call the connect method on this object by simply typing:
 import zapit.interfaces.TCPclient;
 client = TCPclient;
-response = client.connect();
+client.connect();
