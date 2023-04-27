@@ -96,7 +96,7 @@ In order to send this command to the server, we must first generate a byte tuple
 import Python_TCP_Utils as ptu
 ```
 
-Then, we called `gen_Zapit_byte_tuple`. This function takes 3 arguments: the trial command, a dictionary of argument keys, and a dictionary of argument values. The output is a byte tuple containing the byte representation of trial command, and - if the trial command is 1 - the byte representation of the argument keys, argument values, and the condition number. If the trial command is not 1, these last 3 bytes are zero.
+Then, we call `gen_Zapit_byte_tuple`. This function takes 3 arguments: the trial command, a dictionary of argument keys, and a dictionary of argument values. The output is a byte tuple containing the byte representation of trial command, and - if the trial command is 1 - the byte representation of the argument keys, argument values, and the condition number. If the trial command is not 1, these last 3 bytes are zero.
  Therefore, to send the message specified above, we must call:
 
 ```python
