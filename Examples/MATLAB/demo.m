@@ -4,14 +4,21 @@
 %%%                                   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% This demo contains two examples. For these to work, the MATLAB
+% folder in this repo must be in your path.
 
+
+% First we will import the client and associated code from the
+% zapit_tcp_bridge package (i.e. the "+" directory) in this repo.
+import zapit_tcp_bridge
+
+
+%% ONE
 %% Generate the Zapit_byte_tuple
 zapit_byte_tuple = gen_Zapit_byte_tuple(1, ...
                                         containers.Map({'conditionNum_channel', 'laser_channel', 'hardwareTriggered_channel', 'logging_channel', 'verbose_channel'}, {true, true, false, false, false}), ...
                                         containers.Map({'conditionNum', 'laser_ON', 'hardwareTriggered_ON', 'logging_ON', 'verbose_ON'}, {4, true, false, false, false}));
 %% Communicate with Zapit
-% Import the client from zapit.interfaces module
-import zapit.interfaces.TCPclient;
 
 % Create an instance of the TCPclient class
 client = TCPclient;
@@ -36,10 +43,10 @@ parsed_response = parse_server_response(zapit_byte_tuple, ...
                                         response{2}, ...
                                         [response{3:4}]);
 disp(parsed_response);
-%%
 
-%% In a single step
-import zapit.interfaces.TCPclient;
+
+
+%% TWO: In a single step
 
 zapit_byte_tuple = gen_Zapit_byte_tuple(1, ...
                                         containers.Map({'conditionNum_channel', 'laser_channel', 'hardwareTriggered_channel', 'logging_channel', 'verbose_channel'}, {true, true, false, false, false}), ...
