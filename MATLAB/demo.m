@@ -37,7 +37,7 @@ parsed_response = parse_server_response(zapit_byte_tuple, ...
                                         [response{3:4}]);
 disp(parsed_response);
 %%
-clear
+
 %% In a single step
 import zapit.interfaces.TCPclient;
 
