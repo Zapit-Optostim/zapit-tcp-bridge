@@ -19,9 +19,16 @@ classdef TCPclient < handle
     methods
 
         function obj = TCPclient(varargin)
+            % Create a Zapit TCP/IP client connection instance
+            %
+            % zapit_tcp_bridge.TCPclient
+            %
             % Inputs (optional param/val pairs)
             % 'ip' - [string] Is 'localhost' by default (see zapit.interfaces.tcpip)
             % 'port' - [numeric scalar] is 1488 by default
+            %
+            % Rob Campbell - SWC 2023
+
 
             params = inputParser;
             params.CaseSensitive = false;
@@ -35,14 +42,14 @@ classdef TCPclient < handle
             obj.port = params.Results.port;
             obj.connected = false;
 
-            
+
         end % Constructor
 
         function response = connect(obj)
             % Build the client
             if obj.connected
                 % Message to connect whilst already connected
-                response = {-1.0,uint8(0),uint8(1),uint8(0)}; 
+                response = {-1.0,uint8(0),uint8(1),uint8(0)};
                 return
             else
                 % Message to connect whilst not connected
@@ -65,7 +72,7 @@ classdef TCPclient < handle
             else
                 % Message to disconnect whilst not connected
                 response = {-1.0,uint8(0),uint8(1),uint8(0)};
-                return 
+                return
             end
         end
 
@@ -75,7 +82,7 @@ classdef TCPclient < handle
 
 
         function sendMessage(obj, byte_tuple)
-            % Send a message to the server. Adds a new line. 
+            % Send a message to the server. Adds a new line.
             % This should be treated as a lower-level function
             message = cell2mat(byte_tuple);
             write(obj.hSocket, message);

@@ -4,8 +4,11 @@
 %%%                                   %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% This demo contains two examples. For these to work, the MATLAB
-% folder in this repo must be in your path.
+% This demo contains two examples. For these to work:
+% 1. The MATLAB folder from this repo must be in your path.
+% 2. You should have started Zapit
+%
+% Code by Quentin Pajot-Moric, SWC 2023
 
 
 % First we will import the client and associated code from the
