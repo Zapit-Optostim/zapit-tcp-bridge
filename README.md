@@ -40,11 +40,14 @@ Possible arguments to `sendSamples` are **{`conditionNum`, `laserOn`, `hardwareT
 Byte 3 is the uint8 value for `conditionNum` (note this limits the protocol to 256 conditions, but this can easily be extended by the user by adding another byte).
 
 ### Replies from the server
-Messages from the server always consist of **11 bytes (0 - 10)**.  **Bytes 0-7** represent the status of the message.  If a **1 or -1** it represents either a **successful connection or an error**, respectively.  Otherwise this double represents a **datetime**.  Byte 8 replies with the message byte.  This guarantees that the reply corresponds to the command we sent.
+Messages from the server always consist of **15 bytes (0 - 14)**.  **Bytes 0-7** represent the status of the message.  If a **1 or -1** it represents either a **successful connection or an error**, respectively.  Otherwise this double represents a **datetime**.  Byte 8 replies with the message byte.  This guarantees that the reply corresponds to the command we sent.
 
-If the command was **0,2-4** then **byte 9** carries the **return value** yielded by Zapit and **byte 10** is left at the **default value of 255**.  If the command was 1, then byte
-  10. Returns the **condition number**
-  11. Returns whether the **laser was on or off**
+If the command was **0,2-4** then **byte 9** carries the **return value** yielded by Zapit and **byte 10** is left at the **default value of 255**.  If the command was 1, then byte:
+  
+  8. Returns the **condition number**
+  9. Returns whether the **laser was on or off**
+
+Bytes 10-14 (the final 4 bytes) are reserved for future use and currently are just set to 255 as a default value. 
 
 A return message of `{-1, 1, 255, 255}` indicates that `sendSample` was called but returned an error.
 
