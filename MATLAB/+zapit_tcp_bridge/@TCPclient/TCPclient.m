@@ -28,7 +28,7 @@ classdef TCPclient < handle
             % 'ip' - [string] Is 'localhost' by default (see zapit.interfaces.tcpip)
             % 'port' - [numeric scalar] is 1488 by default
             %
-            % Rob Campbell - SWC 2023
+            % Rob Campbell, Peter Vincent - SWC 2023
 
 
             params = inputParser;
@@ -190,7 +190,27 @@ classdef TCPclient < handle
             % Send message to server and read reply.
             % Notes: If first byte is 255 we open the connection.
             %        If first byte is 254 we close the connection
+            %
             % Inputs
+            % bytes_so_send - vector of length 4 produced by gen_Zapit_byte_tuple, for instance.
+            %
+            % Outputs
+            % out - processed reply from server formatted as a structure:
+            %   out.bytes_to_send - a copy of the input argument bytes_to_send
+            %   out.datetime - timestamp of the return message
+            %   out.message_type - the message type reported by the server
+            %   out.response_tuple -
+            %   out.success - true/false indicating if the command succeeded
+            %   out.statusMessage - string indicating what happened
+            %
+            % e.g.
+            %     bytes_to_send: [1 1 0 2]
+            %          datetime: 7.3911e+05
+            %      message_type: 1
+            %    response_tuple: [2 1 255 255 255 255]
+            %           success: 1
+            %     statusMessage: 'MessageMatches'
+
 
             if length(bytes_to_send) ~= 4
                 fprintf('Command message must be 4 bytes long\n')
@@ -239,7 +259,7 @@ classdef TCPclient < handle
             obj.buffer =  struct('bytes_to_send', bytes_to_send, ...
                                 'datetime', -1.0, ...
                                 'message_type', uint8(0), ...
-                                'response_tuple', uint8([0,0]), ...
+                                'response_tuple', repmat(uint8(255), 1,6), ...
                                 'success', false, ...
                                 'statusMessage', -1);
 
@@ -259,7 +279,7 @@ classdef TCPclient < handle
 
             obj.buffer.datetime = typecast(msg(1:8),'double');
             obj.buffer.message_type = msg(9);
-            obj.buffer.response_tuple = msg(10:11);
+            obj.buffer.response_tuple = msg(10:15);
 
 
             if obj.buffer.datetime == -1
