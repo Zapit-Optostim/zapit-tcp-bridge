@@ -2,6 +2,7 @@ classdef TCPclient < handle
 
     properties (Hidden)
         listeners
+        bytesToRead = 15 % Number of bytes in the message
     end
 
     properties
@@ -36,7 +37,7 @@ classdef TCPclient < handle
             params.addParameter('ip', obj.ip, @ischar)
             params.addParameter('port', obj.port, @isnumeric)
 
-            params.parse(varargin{:})
+            params.parse(varargin{:});
 
             obj.ip = params.Results.ip;
             obj.port = params.Results.port;
@@ -54,7 +55,8 @@ classdef TCPclient < handle
             else
                 % Message to connect whilst not connected
                 obj.hSocket = tcpclient(obj.ip, obj.port);
-                obj.setupSocket;
+                % Read all bytes in the message then call then process data with a callback
+                configureCallback(obj.hSocket, "byte", obj.bytesToRead, @obj.readDataFcn);
                 obj.connected = true;
                 response = {1.0,uint8(1),uint8(1),uint8(1)};
                 return
@@ -76,55 +78,227 @@ classdef TCPclient < handle
             end
         end
 
+
         function delete(obj)
             close(obj)
         end % Destructor
 
 
-        function sendMessage(obj, byte_tuple)
-            % Send a message to the server. Adds a new line.
-            % This should be treated as a lower-level function
-            message = cell2mat(byte_tuple);
-            write(obj.hSocket, message);
-        end % sendMessage
+        % The following are basically wrappers that send common messages
+        % Note: there must be a constant property in zapit_tcp_bridge.messages
+        % that has the same name as the function.
+
+        function reply = stopOptoStim(obj)
+            reply = obj.runWrapper;
+        end
 
 
-        function reply = send_receive(obj,byte_tuple)
-            if byte_tuple{1} == uint8(255)
-                obj.connect(obj)
-            elseif byte_tuple{1} == uint8(254)
-                obj.close(obj)
-            elseif (byte_tuple{1} < uint8(254)) && (~obj.connected)
+        function reply = stimConfigLoaded(obj)
+            reply = obj.runWrapper;
+        end
+
+
+        function reply = getState(obj)
+            % TODO -- this returns a single right now...
+            reply = obj.runWrapper;
+        end
+
+
+        function reply = getNumConditions(obj)
+            reply = obj.runWrapper;
+        end
+
+
+        % The wrapper for sendSamples is more complicated because it needs to handle
+        % multiple optional input arguments. These need to match what is in the
+        % sendSamples method in zapit.pointer.
+
+        function [conditionNumber,laserOn,reply] = sendSamples(obj,varargin)
+            % Inputs [param/value pairs]
+            % 'conditionNum' - Integer but empty by default. This is the index of the
+            %               condition number to present. If empty or -1 a random one is
+            %               chosen.
+            % 'laserOn' - [bool, true by default] If true the laser is on. If false the
+            %             galvos move but the laser is off. If empty or -1, a random laser
+            %             state is chosen.
+            % 'hardwareTriggered' [bool, true by default] If true the DAQ waits for a
+            %             hardware trigger before presenting the waveforms.
+            % 'logging' - [bool, true by default] If true we write log files automatically
+            %             if the user has defined a valid directory in zapit.pointer.experimentPath.
+            % 'verbose' - [bool, false by default] If true print debug messages to screen.
+            %
+            %
+            % Outputs
+            % conditionNumber - the condition that was presented. -1 in event of error
+            %                   where nothing was presented.
+            % laserOn - bool indicated whether or not the laser was on in this trial. If
+            %       error and nothing presented, this returns -1.
+            % reply - structure containing the full reply from the TCP/IP comms
+
+
+            %Parse optional arguments
+            params = inputParser;
+            params.CaseSensitive = false;
+            params.addParameter('conditionNumber', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
+            params.addParameter('laserOn', [], @(x) isempty(x) || islogical(x) || x == 0 || x == 1 || x == -1);
+            params.addParameter('hardwareTriggered', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
+            params.addParameter('logging', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
+            params.addParameter('verbose', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
+
+            params.parse(varargin{:});
+
+            % Create "blank" templates for the keys and the values bitmasks
+            out = zapit_tcp_bridge.constants.sendSamples_arg_int_dict;
+            arg_bitmask = containers.Map(out.keys, repmat({false},1,length(out.keys)));
+
+            out = zapit_tcp_bridge.constants.sendSamples_val_int_dict;
+            values_bitmask = containers.Map(out.keys, repmat(0,1,length(out.keys)));
+
+
+            % Now we go through and modify the above based on what the user has asked for.
+            tKeys = out.keys;
+            for ii = 1:length(tKeys)
+                if isempty(params.Results.(tKeys{ii}))
+                    continue
+                end
+                arg_bitmask(tKeys{ii}) = true;
+                values_bitmask(tKeys{ii}) = params.Results.(tKeys{ii});
+            end
+
+            messageToSend = zapit_tcp_bridge.gen_Zapit_byte_tuple(1, arg_bitmask, values_bitmask);
+
+            reply = obj.send_receive(messageToSend);
+
+            if reply.success==1
+                conditionNumber = reply.response_tuple(1);
+                laserOn = reply.response_tuple(2);
+            else
+                conditionNumber = -1;
+                laserOn = -1;
+            end
+
+        end
+
+
+
+        function out = send_receive(obj,bytes_to_send)
+            % Sends and receives messages
+            %
+            % zapit_tcp_bridge.TCPclient.send_receive(bytes_to_send)
+            %
+            % Purpose
+            % Send message to server and read reply.
+            % Notes: If first byte is 255 we open the connection.
+            %        If first byte is 254 we close the connection
+            % Inputs
+
+            if length(bytes_to_send) ~= 4
+                fprintf('Command message must be 4 bytes long\n')
+                return
+            end
+
+            % TODO -- what is the idea behind the connection and disconnection codes?
+            if bytes_to_send(1) == 255
+                reply = obj.connect(obj);
+            elseif bytes_to_send(1) == 254
+                reply = obj.close(obj);
+            elseif (bytes_to_send(1) < 254) && ~obj.connected
                 reply = {-1.0,uint8(0),uint8(0),uint8(1)};
                 return
             end
-            % Sends a command and waits for a response
-            obj.sendMessage(byte_tuple);
 
-            waitfor(obj, 'buffer')
-            % Parse the reply into its components
-            reply = cell(4,1);
-            reply{1} = obj.buffer.datetime;
-            reply{2} = obj.buffer.message_type;
-            reply{3} = obj.buffer.response_tuple(1);
-            reply{4} = obj.buffer.response_tuple(2);
-            return
+            % Sends a command and waits for a response
+            obj.sendMessage(bytes_to_send);
+
+            waitfor(obj, 'buffer');
+
+            % Once the reply has been obtained, it is automatically processed by the
+            % callback function readDataFcn
+            out = obj.buffer;
+
         end % sendCommand
 
-        function setupSocket(obj)
-            % Set up for reading messages of 11 bytes (replies from the
-            % server)
-            configureCallback(obj.hSocket,"byte",11,@obj.readDataFcn);
-        end % setupSocket
-
-        function readDataFcn(obj, src, ~)
-            msg = read(src,11,"uint8");
-            obj.buffer = struct('datetime', typecast(msg(1:8),'double'), ...
-                                'message_type', msg(9), ...
-                                'response_tuple', msg(10:11));
-
-        end % readDataFcn
 
     end % methods
+
+    methods (Hidden=true)
+
+        function sendMessage(obj, bytes_to_send)
+            % Send a message to the server. Adds a new line.
+            %
+            % zapit_tcp_bridge.TCPclient.sendMessage(bytes_to_send)
+            %
+            % Purpose
+            % Sends a byte string to the server.
+            % This should be treated as a lower-level function
+            %
+            % Inputs
+            % bytes_to_send - vector of bytes to send. (uint8)
+
+            % Wipe the buffer
+            obj.buffer =  struct('bytes_to_send', bytes_to_send, ...
+                                'datetime', -1.0, ...
+                                'message_type', uint8(0), ...
+                                'response_tuple', uint8([0,0]), ...
+                                'success', false, ...
+                                'statusMessage', -1);
+
+            write(obj.hSocket, uint8(bytes_to_send));
+        end % sendMessage
+
+
+        function readDataFcn(obj, src, ~)
+            % Read all bytes in the message from the buffer
+            %
+            % The first 8 bytes are a time stamp and are converted to a double
+            % Byte 9 is the message type
+            % Bytes 10 and 11 are the response itself
+            % The remaining four bytes are unused and reserved for future use.
+
+            msg = read(src, obj.bytesToRead, "uint8");
+
+            obj.buffer.datetime = typecast(msg(1:8),'double');
+            obj.buffer.message_type = msg(9);
+            obj.buffer.response_tuple = msg(10:11);
+
+
+            if obj.buffer.datetime == -1
+                statusMessage = 'Error';
+                success = false;
+            elseif obj.buffer.datetime == 1
+                statusMessage = 'Connected';
+                success = true;
+            else
+                datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
+                % Check that Zapit is responding to the right message_type (e.g. sendSamples)
+                if obj.buffer.message_type ~= obj.buffer.bytes_to_send(1)
+                    statusMessage = 'Mismatch';
+                    success = false;
+                else
+                    statusMessage = 'MessageMatches';
+                    success = true;
+                end
+            end
+
+            obj.buffer.success = success;
+            obj.buffer.statusMessage = statusMessage;
+        end % readDataFcn
+
+
+        function [response,fullReply] = runWrapper(obj)
+            % Called by wrapper functions to run a common command
+            if ~obj.connected
+                reply = [];
+                fprintf('Not connected to Server!\n')
+                return
+            end
+            st = dbstack;
+            callerMethodName = regexprep(st(end).name,'.*\.','');
+            messageToSend = zapit_tcp_bridge.constants.(callerMethodName);
+            fullReply = obj.send_receive(messageToSend);
+            response = single(fullReply.response_tuple(1));
+        end
+
+    end
 
 end % TCPclient
