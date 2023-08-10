@@ -26,31 +26,38 @@ function zapit_com_bytes = gen_Zapit_byte_tuple(trial_state_command, arg_keys_di
 
     %% Get dictionary maps from class
 
-    % Map arg_keys_dict to ints
+    % Get constant maps
     keys_to_int_dict =  zapit_tcp_bridge.constants.sendSamples_arg_int_dict;
     t_arg_values_keys =  zapit_tcp_bridge.constants.sendSamples_val_int_dict;
-    bool_to_int_dict = zapit_tcp_bridge.constants.bool_to_int_dict;
+
 
 
     % Sum arg_keys_dict (input argument) ints and convert to byte
     arg_keys_int = 0;
+    NEW = 0; % TODO: delete
+    %arg_keys_dict.values
+    %arg_keys_dict.keys
     for arg = keys(arg_keys_dict)
-        key = arg_keys_dict(arg{1});
-        arg_keys_int = arg_keys_int + bool_to_int_dict(key) * keys_to_int_dict(arg{1});
+        arg = arg{1}; % Extract string from cell
+        tValue = arg_keys_dict(arg);
+        arg_keys_int = arg_keys_int + tValue * keys_to_int_dict(arg);
     end
-
 
     % Sum arg_value_dict (input argument) ints and convert to byte
     arg_values_int = 0;
+    arg_values_dict.values;
+    arg_values_dict.keys;
     for arg = keys(arg_values_dict)
-        value = arg_values_dict(arg{1});
+        arg = arg{1}; % Extract string from cell
+        tValue = arg_values_dict(arg);
         try
-            arg_values_int = arg_values_int + bool_to_int_dict(value) * bool_values_to_int_dict(arg{1});
-        catch
+            arg_values_int = arg_values_int + tValue * t_arg_values_keys(arg);
+        catch ME
+            ME
             % do nothing
         end
     end
-
+    %arg_values_int=nan;
 
     % Define trial states where we will query Zapit
     trial_state_ints = [2, 3, 4, 1, 0];

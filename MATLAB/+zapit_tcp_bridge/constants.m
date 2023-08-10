@@ -41,10 +41,5 @@ classdef constants
             out = containers.Map(argVals,  zapit_tcp_bridge.constants.pSeries(argVals));
         end
 
-        function out = bool_to_int_dict
-            % Map True/False boolean values to 1/0
-            out = containers.Map({true, false}, [1, 0]);
-        end
-
     end
 end

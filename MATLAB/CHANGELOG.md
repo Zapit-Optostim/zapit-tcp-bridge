@@ -20,3 +20,4 @@
 * Moved more code into TCPclient.
 * Improved documentation. 
 * Updated the MATLAB `demo.m` example, as the code has totally changed. 
+* Remove `containers.Map({true, false}, [1, 0]);` from `gen_Zapit_byte_tuple` since MATLAB anyway treats `true` as equal to `1`. So `true*2` equals `2`. 
