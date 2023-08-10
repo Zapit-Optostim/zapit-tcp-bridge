@@ -21,3 +21,30 @@
 * Improved documentation. 
 * Updated the MATLAB `demo.m` example, as the code has totally changed. 
 * Remove `containers.Map({true, false}, [1, 0]);` from `gen_Zapit_byte_tuple` since MATLAB anyway treats `true` as equal to `1`. So `true*2` equals `2`. 
+
+
+### Change substantially how the bitmask is generated. 
+When started, the process looks like:
+
+```
+keys_bitmask = containers.Map({'conditionNumber', 'laserOn', 'hardwareTriggered', 'logging', 'verbose'}, {true, true, false, false, false});
+values_bitmask = containers.Map({'conditionNumber_INT', 'laserOn_ON', 'hardwareTriggered_ON', 'logging_ON', 'verbose_ON'}, {4, true, false, false, false});
+zapit_byte_tuple = gen_Zapit_byte_tuple(1, keys_bitmask, values_bitmask)
+```
+
+There are two issues here:
+1. The `keys_bitmask` is defining each input argument according to whether or not it will be supplied. 
+It would be easier to simply indicate which are needed and just not mention which are not needed.
+2. If we do (1) then we only need one map: the second which links values and arguments. 
+
+To achieve the above it would be easiest to have the keys match the parameter names in `zapit.pointer.sendSamples`.
+Once done, we no longer need to type all the above. 
+Instead we can:
+
+```
+values_bitmask = containers.Map({'conditionNumber', 'laserOn'}, {4, true});
+zapit_byte_tuple = gen_Zapit_byte_tuple(1, values_bitmask)
+```
+
+This is now done and implemented as `zapit_tcp_bridge.TCPserver.gen_sendSamples_byte_tuple`.
+We have removed `gen_Zapit_byte_tuple` as the commands for everything apart from `sendSamples` are now defined by the class `zapit_tcp_bridge.constants`.

@@ -113,7 +113,7 @@ classdef TCPclient < handle
         % multiple optional input arguments. These need to match what is in the
         % sendSamples method in zapit.pointer.
 
-        function [conditionNumber,laserOn,reply] = sendSamples(obj,varargin)
+        function [conditionNumber,laserOn,reply,values_bitmask] = sendSamples(obj,varargin)
             % Inputs [param/value pairs]
             % 'conditionNum' - Integer but empty by default. This is the index of the
             %               condition number to present. If empty or -1 a random one is
@@ -147,12 +147,9 @@ classdef TCPclient < handle
 
             params.parse(varargin{:});
 
-            % Create "blank" templates for the keys and the values bitmasks
+            % Create "blank" template for the values bitmasks
             out = zapit_tcp_bridge.constants.sendSamples_arg_int_dict;
-            arg_bitmask = containers.Map(out.keys, repmat({false},1,length(out.keys)));
-
-            out = zapit_tcp_bridge.constants.sendSamples_val_int_dict;
-            values_bitmask = containers.Map(out.keys, repmat(0,1,length(out.keys)));
+            values_bitmask = containers.Map(out.keys, cell(1,length(out.keys)));
 
 
             % Now we go through and modify the above based on what the user has asked for.
@@ -161,11 +158,10 @@ classdef TCPclient < handle
                 if isempty(params.Results.(tKeys{ii}))
                     continue
                 end
-                arg_bitmask(tKeys{ii}) = true;
                 values_bitmask(tKeys{ii}) = params.Results.(tKeys{ii});
             end
 
-            messageToSend = zapit_tcp_bridge.gen_Zapit_byte_tuple(1, arg_bitmask, values_bitmask);
+            messageToSend = obj.gen_sendSamples_byte_tuple(values_bitmask);
 
             reply = obj.send_receive(messageToSend);
 
@@ -317,6 +313,70 @@ classdef TCPclient < handle
             messageToSend = zapit_tcp_bridge.constants.(callerMethodName);
             fullReply = obj.send_receive(messageToSend);
             response = single(fullReply.response_tuple(1));
+        end
+
+
+        function zapit_com_bytes = gen_sendSamples_byte_tuple(obj,arg_values_dict)
+            % Generate a byte tuple to communicate with Zapit device.
+            %
+            % function zapit_com_bytes = gen_sendSamples_byte_tuple(arg_values_dict)
+            %
+            % Purpose
+            % Generate message to send to Zapit for senSamples:
+            %
+            % Inputs
+            % arg_keys_dict
+            %
+            % Outputs
+            % zapit_com_bytes - 4 byte message to send to Zapit (see above)
+            %
+            %
+
+            % Get constant maps
+            keys_to_int_dict =  zapit_tcp_bridge.constants.sendSamples_arg_int_dict;
+
+
+            % Sum arg_value_dict (input argument) ints and convert to byte
+            arg_values_int = 0; % values bitmask
+            arg_keys_int = 0;   % keys bitmask
+
+            for arg = keys(keys_to_int_dict)
+                arg = arg{1}; % Extract string value from cell array
+
+                % If the key does not exist we skip
+                if ~isKey(arg_values_dict,arg)
+                    continue
+                end
+
+                tValue = arg_values_dict(arg);
+
+                % If the value is empty we don't try to add it to the argument list. Therefore
+                % zapit.pointer.sendSamples will just do whatever was the default behavior for
+                % for this parameter.
+                if isempty(tValue)
+                    continue
+                end
+
+                if strcmp(arg,'conditionNumber')
+                    arg_values_int = arg_values_int + keys_to_int_dict(arg);
+                else
+                    arg_values_int = arg_values_int + tValue * keys_to_int_dict(arg);
+                end
+
+                arg_keys_int = arg_keys_int + keys_to_int_dict(arg);
+            end
+
+            % If true, extract condition number and convert to byte
+            if isKey(arg_values_dict, 'conditionNumber') && ...
+                ~isempty(arg_values_dict('conditionNumber'))
+                conditionNum_int = arg_values_dict('conditionNumber');
+            else
+                conditionNum_int = 255;
+            end
+
+            % First byte is 1 because we are doing sendSamples
+            zapit_com_bytes = uint8([1, arg_keys_int, arg_values_int, conditionNum_int]);
+
         end
 
     end

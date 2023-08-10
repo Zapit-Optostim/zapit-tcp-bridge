@@ -29,17 +29,6 @@ classdef constants
             out = containers.Map(argNames, zapit_tcp_bridge.constants.pSeries(argNames));
         end
 
-        function out = sendSamples_val_int_dict
-            % Convert sendSamples argument values to integers that to be used
-            % for making a bitmask.
-            argVals = {'conditionNumber', ...   % 1
-                       'laserOn', ...            % 2
-                       'hardwareTriggered', ...  % 4
-                       'logging', ...            % 8
-                       'verbose'};               % 16
-
-            out = containers.Map(argVals,  zapit_tcp_bridge.constants.pSeries(argVals));
-        end
 
     end
 end
