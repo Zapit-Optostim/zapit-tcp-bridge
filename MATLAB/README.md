@@ -81,8 +81,10 @@ Now we will load an example stimulus set (or you can use the GUI to load on of y
 pathToExample = fullfile(zapit.updater.getInstallPath,'examples','example_stimulus_config_files');
 exampleFiles = dir(fullfile(pathToExample,'*.yml'));
 hZP.loadStimConfig(fullfile(pathToExample,exampleFiles(1).name))
+```
 
-% Verify 
+Verify it loaded a stimulus config
+```matlab
 >> hZP.stimConfig
 
 ans = 
@@ -189,16 +191,17 @@ A Windows firewall message may appear.
 You should allow the connection.
 
 ```matlab
->> start_zapit('simulated',true)
+start_zapit('simulated',true)
 
 % "calibrate" stereotaxic coords
->> hZP.applyUnityStereotaxicCalib
+hZP.applyUnityStereotaxicCalib
 ```
 
 Now start the client on the remote PC, entering the IP address:
 
 ```matlab
->> client = zapit_tcp_bridge.TCPclient('ip','172.24.243.155');
+client = zapit_tcp_bridge.TCPclient('ip','172.24.243.155');
+client.connect;
 ```
 
 Load a stimulus config in Zapit and confirm you can access the information correctly on the remote PC:
