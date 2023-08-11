@@ -89,22 +89,75 @@ classdef TCPclient < handle
         % that has the same name as the function.
 
         function reply = stopOptoStim(obj)
+            % TCP client command to remotely run zapit.pointer.stopOptoStim
+            %
+            % function zapit_tcp_bridge.TCPclient.stopOptoStim
+            %
+            % Purpose
+            % Runs zapit.pointer.stopOptoStim remotely from the TCP client. This function
+            % takes no input arguments and returns just a "1".
+            %
+            % Inputs
+            % none
+            %
+            % Outputs
+            % Returns 1 as a placeholder. Does not signify anything.
+
             reply = obj.runWrapper;
         end
 
 
         function reply = stimConfigLoaded(obj)
+            % TCP client command to query if a stim config is loaded in Zapit
+            %
+            % function isLoaded = zapit_tcp_bridge.TCPclient.stimConfigLoaded
+            %
+            % Purpose
+            % Return true if a stimulus configuration file is loaded in the connected
+            % instance of Zapit.
+            %
+            % Inputs
+            % none
+            %
+            % Outputs
+            % Returns true if a stim config is loaded. False otherwise.
+
             reply = obj.runWrapper;
         end
 
 
         function reply = getState(obj)
-            % TODO -- this returns a single right now...
+            % TCP client command to query the state of Zapit
+            %
+            % function nCond = zapit_tcp_bridge.TCPclient.getState
+            %
+            % Purpose
+            % Returns the state of the Zapit server.
+            %
+            % Inputs
+            % none
+            %
+            % Outputs
+            % Returns a scalar equal to the number of available stimulus conditions.
+
             reply = obj.runWrapper;
         end
 
 
         function reply = getNumConditions(obj)
+            % TCP client command to query the number of available stimulus conditions
+            %
+            % function nCond = zapit_tcp_bridge.TCPclient.getNumConditions
+            %
+            % Purpose
+            % Returns the number of available stimulus conditions
+            %
+            % Inputs
+            % none
+            %
+            % Outputs
+            % Returns a scalar equal to the number of available stimulus conditions.
+
             reply = obj.runWrapper;
         end
 
@@ -113,14 +166,25 @@ classdef TCPclient < handle
         % multiple optional input arguments. These need to match what is in the
         % sendSamples method in zapit.pointer.
 
-        function [conditionNumber,laserOn,reply,values_bitmask] = sendSamples(obj,varargin)
+        function [conditionNumber,laserOn,reply] = sendSamples(obj,varargin)
+            % TCP client command to remotely run zapit.pointer.sendSamples
+            %
+            % function  [conditionNumber,laserOn,reply] = zapit_tcp_bridge.TCPclient.sendSamples('Param1', value1, ...)
+            %
+            % Purpose
+            % Runs zapit.pointer.sendSamples remotely from the TCP client. This function
+            % takes the same input arguments as that in zapit.pointer and returns the same
+            % first two outputs. An optional third output returns the full response from
+            % the TCP server.
+            %
+            %
             % Inputs [param/value pairs]
             % 'conditionNum' - Integer but empty by default. This is the index of the
             %               condition number to present. If empty or -1 a random one is
             %               chosen.
             % 'laserOn' - [bool, true by default] If true the laser is on. If false the
             %             galvos move but the laser is off. If empty or -1, a random laser
-            %             state is chosen.
+            %
             % 'hardwareTriggered' [bool, true by default] If true the DAQ waits for a
             %             hardware trigger before presenting the waveforms.
             % 'logging' - [bool, true by default] If true we write log files automatically
