@@ -48,3 +48,8 @@ zapit_byte_tuple = gen_Zapit_byte_tuple(1, values_bitmask)
 
 This is now done and implemented as `zapit_tcp_bridge.TCPserver.gen_sendSamples_byte_tuple`.
 We have removed `gen_Zapit_byte_tuple` as the commands for everything apart from `sendSamples` are now defined by the class `zapit_tcp_bridge.constants`.
+
+
+# 2023/08/11
+Finish polishing the MATLAB code. Add a more complete demo as a markdown file. 
+Overhaul docs.

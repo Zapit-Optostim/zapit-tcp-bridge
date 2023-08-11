@@ -24,9 +24,19 @@ classdef TCPclient < handle
             %
             % zapit_tcp_bridge.TCPclient
             %
+            % Purpose
+            % Connect to the Zapit TCP/IP server.
+            %
+            %
             % Inputs (optional param/val pairs)
-            % 'ip' - [string] Is 'localhost' by default (see zapit.interfaces.tcpip)
+            % 'ip' - [string] Is 'localhost' by default (see zapit.interfaces.getIPaddress)
             % 'port' - [numeric scalar] is 1488 by default
+            %
+            %
+            % Example
+            % Connect to a remote server at IP address 123.123.123.123
+            % client = zapit_tcp_bridge.TCPclient('ip', '123.123.123.123');
+            %
             %
             % Rob Campbell, Peter Vincent - SWC 2023
 
