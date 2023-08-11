@@ -76,7 +76,7 @@ classdef TCPclient < handle
                 response = {-1.0,uint8(0),uint8(1),uint8(0)};
                 return
             end
-        end
+        end % close
 
 
         function delete(obj)
@@ -104,7 +104,7 @@ classdef TCPclient < handle
             % Returns 1 as a placeholder. Does not signify anything.
 
             reply = obj.runWrapper;
-        end
+        end % stopOptoStim
 
 
         function reply = stimConfigLoaded(obj)
@@ -123,7 +123,7 @@ classdef TCPclient < handle
             % Returns true if a stim config is loaded. False otherwise.
 
             reply = obj.runWrapper;
-        end
+        end % stimConfigLoaded
 
 
         function reply = getState(obj)
@@ -132,7 +132,9 @@ classdef TCPclient < handle
             % function nCond = zapit_tcp_bridge.TCPclient.getState
             %
             % Purpose
-            % Returns the state of the Zapit server.
+            % Returns the state of the Zapit server: 'idle', 'active', or 'rampdown'
+            % In the event of an error or an otherwise unknown state, the srting
+            % ' UNKNOWN_STATE ' is returned. Note the empty first and last characters.
             %
             % Inputs
             % none
@@ -140,8 +142,18 @@ classdef TCPclient < handle
             % Outputs
             % Returns a scalar equal to the number of available stimulus conditions.
 
-            reply = obj.runWrapper;
-        end
+            returnVal = obj.runWrapper;
+
+            if returnVal == 255
+                reply = ' UNKNOWN_STATE ';
+                return
+            end
+
+            tDict = containers.Map([0,1,2], {'idle', 'active', 'rampdown'});
+            returnVal
+            reply = tDict(returnVal);
+
+        end % getState
 
 
         function reply = getNumConditions(obj)
@@ -159,12 +171,8 @@ classdef TCPclient < handle
             % Returns a scalar equal to the number of available stimulus conditions.
 
             reply = obj.runWrapper;
-        end
+        end % getNumConditions
 
-
-        % The wrapper for sendSamples is more complicated because it needs to handle
-        % multiple optional input arguments. These need to match what is in the
-        % sendSamples method in zapit.pointer.
 
         function [conditionNumber,laserOn,reply] = sendSamples(obj,varargin)
             % TCP client command to remotely run zapit.pointer.sendSamples
@@ -237,7 +245,7 @@ classdef TCPclient < handle
                 laserOn = -1;
             end
 
-        end
+        end % sendSamples
 
 
 
