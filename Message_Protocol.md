@@ -11,7 +11,7 @@ Only command **1** has input arguments: it takes a variable number of inputs and
 The remaining commands have no input arguments and return a single value. 
 
 ### Messages to the server
-Messages to the server always consist of **6 bytes** (*stored as little-endian*).
+Messages to the server always consist of **12 bytes** (*stored as little-endian*).
 The first byte consists of the **command number** (given above).
 The remaining bytes are by default set to **0**, and are only used if the command number is **1** (i.e., if we are calling the `sendSamples` method).
 In this case, the message structure is as follows:
@@ -20,9 +20,10 @@ In this case, the message structure is as follows:
   1. Bitmask indicating which **keys to pass as arguments** to `sendSamples`
   2. Bitmask indicating the **boolean values of the key-value pairs** given to `sendSamples`
   3. Byte indicating the **condition number** to pass to `sendSamples`
-  4. Whole number of seconds for the stimulus duration. 
-  5. Fractions of a second defined as byte_5/256. So 5.5 seconds will be coded as [5,128] using bytes 4 and 5. 
 
+  * Bytes 4 to 7 are the whole number of seconds for the stimulus duration sent as a signed single.
+  * Bytes 8 to 11 are the laser power in mW sent as a signed single.
+  
 Possible arguments to `sendSamples` are **{`conditionNum`, `laserOn`, `hardwareTriggered`, `logging`, `verbose`}**.
 Each of the 5 lowest significant bits of **byte 1** in the message corresponds to these arguments, with the bit set to 1 if the key-value pair is to passed of 0 if it is not to be passed.
 For example, if we are sending arguments for `conditionNum`, `laserOn` and `logging`, byte 1 will have memory layout `0 0 0 0 1 0 1 1`, for a value of 11 (read the list of keys from right to left to get the position in the byte).

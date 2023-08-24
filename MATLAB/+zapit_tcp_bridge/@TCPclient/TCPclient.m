@@ -2,8 +2,6 @@ classdef TCPclient < handle
 
     properties (Hidden)
         listeners
-        numBytesToRead = 15 % Number of bytes in the message
-        numBytesToSend = 6  % To error check
     end
 
     properties
@@ -68,7 +66,7 @@ classdef TCPclient < handle
             obj.hSocket = tcpclient(obj.ip, obj.port);
 
             % Read all bytes in the message then call then process data with a callback
-            configureCallback(obj.hSocket, "byte", obj.numBytesToRead, @obj.readDataFcn);
+            configureCallback(obj.hSocket, "byte", zapit_tcp_bridge.constants.numBytesToRead, @obj.readDataFcn);
             obj.connected = true;
 
         end
@@ -221,7 +219,8 @@ classdef TCPclient < handle
             params.CaseSensitive = false;
             params.addParameter('conditionNumber', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('laserOn', [], @(x) isempty(x) || islogical(x) || x == 0 || x == 1 || x == -1);
-            params.addParameter('stimDurationSeconds', 0, @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
+            params.addParameter('stimDurationSeconds', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
+            params.addParameter('laserPower_mw', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('hardwareTriggered', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
             params.addParameter('logging', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
             params.addParameter('verbose', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
@@ -292,9 +291,9 @@ classdef TCPclient < handle
 
 
 
-            if length(bytes_to_send) ~= obj.numBytesToSend
+            if length(bytes_to_send) ~= zapit_tcp_bridge.constants.numBytesToSend
                 fprintf('Command message must be %d bytes long but was %d bytes\n', ...
-                    obj.numBytesToSend, length(bytes_to_send))
+                    zapit_tcp_bridge.constants.numBytesToSend, length(bytes_to_send))
                 out = [];
                 return
             end
@@ -336,9 +335,9 @@ classdef TCPclient < handle
             % Inputs
             % bytes_to_send - vector of bytes to send. (uint8)
 
-            if length(bytes_to_send) ~= obj.numBytesToSend
+            if length(bytes_to_send) ~= zapit_tcp_bridge.constants.numBytesToSend
                 fprintf(['TCPclient.sendMessage expects "bytes_to_send" to be %d bytes long. ', ...
-                'Actual value is %d\n'], obj.numBytesToSend, length(bytes_to_send))
+                'Actual value is %d\n'], zapit_tcp_bridge.constants.numBytesToSend, length(bytes_to_send))
                 return
             end
 
@@ -362,10 +361,10 @@ classdef TCPclient < handle
             % Bytes 10 and 11 are the response itself
             % The remaining four bytes are unused and reserved for future use.
 
-            msg = read(src, obj.numBytesToRead, "uint8");
+            msg = read(src, zapit_tcp_bridge.constants.numBytesToRead, "uint8");
 
             obj.buffer.datetime = typecast(msg(1:8),'double');
-            obt.buffer.datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
+            obj.buffer.datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
             obj.buffer.message_type = msg(9);
             obj.buffer.response_tuple = msg(10:15);
 
@@ -396,13 +395,16 @@ classdef TCPclient < handle
             % Called by wrapper functions to run a common command
 
             if ~obj.connected
-                reply = [];
+                response = [];
+                fullReply = [];
                 fprintf('Not connected to Server!\n')
                 return
             end
             st = dbstack;
             callerMethodName = regexprep(st(end).name,'.*\.','');
-            messageToSend = zapit_tcp_bridge.constants.(callerMethodName);
+
+            messageToSend = zeros(1,zapit_tcp_bridge.constants.numBytesToSend);
+            messageToSend(1) = zapit_tcp_bridge.constants.(callerMethodName);
 
             fullReply = obj.send_receive(messageToSend);
 
@@ -455,7 +457,10 @@ classdef TCPclient < handle
                     continue
                 end
 
-                if strcmp(arg,'conditionNumber') || strcmp(arg,'stimDurationSeconds')
+                if strcmp(arg,'conditionNumber') || ...
+                    strcmp(arg,'stimDurationSeconds') || ...
+                    strcmp(arg,'laserPower_mw')
+
                     % These are the values that have integers or floats associated with them
                     arg_values_int = arg_values_int + keys_to_int_dict(arg);
                 else
@@ -466,6 +471,7 @@ classdef TCPclient < handle
             end
 
             % If true, extract condition number and convert to byte
+
             if isKey(arg_values_dict, 'conditionNumber') && ...
                 ~isempty(arg_values_dict('conditionNumber'))
                 conditionNum_int = arg_values_dict('conditionNumber');
@@ -473,26 +479,32 @@ classdef TCPclient < handle
                 conditionNum_int = 255;
             end
 
-            % If true, extract condition number and convert to byte
+            % If true, extract condition number so we can convert to bytes
             if isKey(arg_values_dict, 'stimDurationSeconds') && ...
                 ~isempty(arg_values_dict('stimDurationSeconds'))
+
                 stimDur = arg_values_dict('stimDurationSeconds');
-
-                % To avoid wrapping around
-                wholeSeconds = floor(stimDur);
-                if wholeSeconds > 2^8
-                    wholeSeconds = 2^8;
-                end
-
-                stimDur_int = [wholeSeconds, round(mod(stimDur,1)*2^8) ];
-
             else
-                stimDur_int = [0,0];
+                stimDur = -1;
             end
 
+            % If true, extract laser power so we can convert to bytes
+            if isKey(arg_values_dict, 'laserPower_mw') && ...
+                ~isempty(arg_values_dict('laserPower_mw'))
+
+                laserPower = arg_values_dict('laserPower_mw');
+            else
+                laserPower = -1;
+            end
+
+
             % First byte is 1 because we are doing sendSamples
-            zapit_com_bytes = uint8([1, arg_keys_int, arg_values_int, ...
-                conditionNum_int, stimDur_int]);
+            zapit_com_bytes = uint8([1, ...
+                            arg_keys_int, ...
+                            arg_values_int, ...
+                            conditionNum_int, ...
+                            typecast(single(stimDur),'uint8'), ...
+                            typecast(single(laserPower),'uint8')]);
 
         end
 
