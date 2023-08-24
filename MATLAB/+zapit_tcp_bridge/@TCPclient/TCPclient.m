@@ -155,7 +155,6 @@ classdef TCPclient < handle
             end
 
             tDict = containers.Map([0,1,2], {'idle', 'active', 'rampdown'});
-            returnVal
             reply = tDict(returnVal);
 
         end % getState
@@ -366,6 +365,7 @@ classdef TCPclient < handle
             msg = read(src, obj.numBytesToRead, "uint8");
 
             obj.buffer.datetime = typecast(msg(1:8),'double');
+            obt.buffer.datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
             obj.buffer.message_type = msg(9);
             obj.buffer.response_tuple = msg(10:15);
 
@@ -377,7 +377,6 @@ classdef TCPclient < handle
                 statusMessage = 'Connected';
                 success = true;
             else
-                datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
                 % Check that Zapit is responding to the right message_type (e.g. sendSamples)
                 if obj.buffer.message_type ~= obj.buffer.bytes_to_send(1)
                     statusMessage = 'Mismatch';
@@ -467,7 +466,6 @@ classdef TCPclient < handle
             end
 
             % If true, extract condition number and convert to byte
-             isKey(arg_values_dict, 'conditionNumber')
             if isKey(arg_values_dict, 'conditionNumber') && ...
                 ~isempty(arg_values_dict('conditionNumber'))
                 conditionNum_int = arg_values_dict('conditionNumber');
@@ -475,7 +473,6 @@ classdef TCPclient < handle
                 conditionNum_int = 255;
             end
 
-            isKey(arg_values_dict, 'stimDurationSeconds')
             % If true, extract condition number and convert to byte
             if isKey(arg_values_dict, 'stimDurationSeconds') && ...
                 ~isempty(arg_values_dict('stimDurationSeconds'))
