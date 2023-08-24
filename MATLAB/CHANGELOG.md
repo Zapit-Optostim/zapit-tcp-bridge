@@ -53,3 +53,6 @@ We have removed `gen_Zapit_byte_tuple` as the commands for everything apart from
 # 2023/08/11
 Finish polishing the MATLAB code. Add a more complete demo as a markdown file. 
 Overhaul docs.
+
+# 2023/08/24
+Outward message is now 6 bytes long to allow for stimulus duration to be sent. 

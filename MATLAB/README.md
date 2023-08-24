@@ -1,7 +1,7 @@
 # Zapit TCP/IP comms demo 
 
 ## Before you start
-1. The MATLAB folder from this repo must be in the MATLAB path on the client PC.
+1. The MATLAB folder from this repo must be in the MATLAB path on the client PC. DO NOT "ADD WITH SUB-FOLDERS"!!
 2. You should have started Zapit with the "tcpServer" "enable" setting being "true" in the YML settings file.
 
 ## Available commands 

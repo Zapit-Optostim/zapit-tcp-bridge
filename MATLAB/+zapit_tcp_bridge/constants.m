@@ -5,10 +5,10 @@ classdef constants
 
         % The following are standard messages to Zapit that are used by wrappers
         % in the TCPclient class
-        stopOptoStim = [0,0,0,0]
-        stimConfigLoaded = [2,0,0,0]
-        getState = [3,0,0,0]
-        getNumConditions = [4,0,0,0]
+        stopOptoStim = [0,0,0,0,0,0]
+        stimConfigLoaded = [2,0,0,0,0,0]
+        getState = [3,0,0,0,0,0]
+        getNumConditions = [4,0,0,0,0,0]
 
         % Anonymous function for generating the power series needed for the
         % bitmask of sendSamples arguments and values
@@ -24,7 +24,8 @@ classdef constants
                         'laserOn', ...            % 2
                         'hardwareTriggered', ...  % 4
                         'logging', ...            % 8
-                        'verbose'};               % 16
+                        'verbose', ...            % 16
+                        'stimDurationSeconds'};   % 32
 
             out = containers.Map(argNames, zapit_tcp_bridge.constants.pSeries(argNames));
         end
