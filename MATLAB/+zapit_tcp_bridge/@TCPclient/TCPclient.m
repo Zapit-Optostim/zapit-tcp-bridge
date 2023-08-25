@@ -189,20 +189,27 @@ classdef TCPclient < handle
             %
             %
             % Inputs [param/value pairs]
-            % 'conditionNum' - Integer but empty by default. This is the index of the
-            %               condition number to present. If empty or -1 a random one is
-            %               chosen.
-            % 'laserOn' - [bool, true by default] If true the laser is on. If false the
-            %             galvos move but the laser is off. If empty or -1, a random laser
-            % 'stimDurationSeconds' - [scalar, -1 by default] If >0 once the waveform is sent to the DAQ
-            %             and begins to play it will do so for a pre-defined time period before
-            %             ramping down and stopping. e.g. if stimDurationSeconds is 1.5 then
-            %             the waveform will play for 1.5 seconds then will ramp down and stop.
-            %
-            % 'hardwareTriggered' [bool, true by default] If true the DAQ waits for a
-            %             hardware trigger before presenting the waveforms.
-            % 'logging' - [bool, true by default] If true we write log files automatically
-            %             if the user has defined a valid directory in zapit.pointer.experimentPath.
+            % 'conditionNum' - Integer but empty by default. This is the index of the condition
+            %                  number to present. If empty or -1 a random one is chosen.
+            % 'laserOn' - [bool, true by default] If true the laser is on. If false the galvos move
+            %             but the laser is off. If empty or -1, a random laser state is chosen.
+            %             Note: The laserOn parameter takes precedence over laserPower_mw.
+            % 'stimDurationSeconds' - [scalar float, -1 by default] If >0 once the waveform is sent
+            %             to the DAQ and begins to play it will do so for a pre-defined time
+            %             period before ramping down and stopping. e.g. if stimDurationSeconds is
+            %             1.5 then the waveform will play for 1.5 seconds then will ramp down and
+            %             stop.
+            % 'startDelaySeconds' - [scalar float, 0 by default] This setting is only valid if
+            %             stimDurationSeconds is >0. Otherwise it is ignored. A delay of this many
+            %             seconds is added to finite stimulus durations. This is going to be most
+            %             useful for cases where the stimulus is triggered by a TTL pulse.
+            % 'laserPower_mw' - By default the value in the stim config file is used. If this is
+            %             provided, the stim config value is ignored. The value actually presented
+            %             is always logged to the experiment log file.
+            % 'hardwareTriggered' [bool, true by default] If true the DAQ waits for a hardware
+            %             trigger before presenting the waveforms.
+            % 'logging' - [bool, true by default] If true we write log files automatically if the
+            %             user has defined a valid directory in zapit.pointer.experimentPath.
             % 'verbose' - [bool, false by default] If true print debug messages to screen.
             %
             %
@@ -220,6 +227,7 @@ classdef TCPclient < handle
             params.addParameter('conditionNumber', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('laserOn', [], @(x) isempty(x) || islogical(x) || x == 0 || x == 1 || x == -1);
             params.addParameter('stimDurationSeconds', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
+            params.addParameter('startDelaySeconds', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('laserPower_mw', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('hardwareTriggered', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
             params.addParameter('logging', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
@@ -337,7 +345,9 @@ classdef TCPclient < handle
 
             if length(bytes_to_send) ~= zapit_tcp_bridge.constants.numBytesToSend
                 fprintf(['TCPclient.sendMessage expects "bytes_to_send" to be %d bytes long. ', ...
-                'Actual value is %d\n'], zapit_tcp_bridge.constants.numBytesToSend, length(bytes_to_send))
+                'Actual value is %d\n'], ...
+                zapit_tcp_bridge.constants.numBytesToSend, length(bytes_to_send))
+
                 return
             end
 
@@ -459,7 +469,8 @@ classdef TCPclient < handle
 
                 if strcmp(arg,'conditionNumber') || ...
                     strcmp(arg,'stimDurationSeconds') || ...
-                    strcmp(arg,'laserPower_mw')
+                    strcmp(arg,'laserPower_mw') || ...
+                    strcmp(arg,'startDelaySeconds')
 
                     % These are the values that have integers or floats associated with them
                     arg_values_int = arg_values_int + keys_to_int_dict(arg);
@@ -468,10 +479,10 @@ classdef TCPclient < handle
                 end
 
                 arg_keys_int = arg_keys_int + keys_to_int_dict(arg);
-            end
+            end % for arg = keys(keys_to_int_dict)
 
-            % If true, extract condition number and convert to byte
 
+            % Set values for scalar arguments
             if isKey(arg_values_dict, 'conditionNumber') && ...
                 ~isempty(arg_values_dict('conditionNumber'))
                 conditionNum_int = arg_values_dict('conditionNumber');
@@ -479,7 +490,7 @@ classdef TCPclient < handle
                 conditionNum_int = 255;
             end
 
-            % If true, extract condition number so we can convert to bytes
+
             if isKey(arg_values_dict, 'stimDurationSeconds') && ...
                 ~isempty(arg_values_dict('stimDurationSeconds'))
 
@@ -488,7 +499,6 @@ classdef TCPclient < handle
                 stimDur = -1;
             end
 
-            % If true, extract laser power so we can convert to bytes
             if isKey(arg_values_dict, 'laserPower_mw') && ...
                 ~isempty(arg_values_dict('laserPower_mw'))
 
@@ -497,17 +507,26 @@ classdef TCPclient < handle
                 laserPower = -1;
             end
 
+            if isKey(arg_values_dict, 'startDelaySeconds') && ...
+                ~isempty(arg_values_dict('startDelaySeconds'))
+
+                stimDelay = arg_values_dict('startDelaySeconds');
+            else
+                stimDelay = 0;
+            end
+
 
             % First byte is 1 because we are doing sendSamples
-            zapit_com_bytes = uint8([1, ...
+            zapit_com_bytes = uint8([ 1, ...
                             arg_keys_int, ...
                             arg_values_int, ...
                             conditionNum_int, ...
                             typecast(single(stimDur),'uint8'), ...
-                            typecast(single(laserPower),'uint8')]);
+                            typecast(single(laserPower),'uint8'), ...
+                            typecast(single(stimDelay),'uint8') ]);
 
-        end
+        end % gen_sendSamples_byte_tuple
 
-    end
+    end % methods
 
 end % TCPclient
