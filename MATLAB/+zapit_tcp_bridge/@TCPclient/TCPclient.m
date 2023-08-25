@@ -410,8 +410,15 @@ classdef TCPclient < handle
                 fprintf('Not connected to Server!\n')
                 return
             end
+
+            % We want to get the caller method name but this is complicated slightly
+            % by the fact that if we run this as a unittest there are lot of extra
+            % callers in the stack from that. So we want the last caller that is a
+            % method of this class.
             st = dbstack;
-            callerMethodName = regexprep(st(end).name,'.*\.','');
+            t_callers_ind = strmatch('TCPclient.',{st.name});
+            lastCallerFullName = st(t_callers_ind(end)).name;
+            callerMethodName = regexprep(lastCallerFullName,'.*\.','');
 
             messageToSend = zeros(1,zapit_tcp_bridge.constants.numBytesToSend);
             messageToSend(1) = zapit_tcp_bridge.constants.(callerMethodName);

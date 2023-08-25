@@ -54,6 +54,6 @@ We have removed `gen_Zapit_byte_tuple` as the commands for everything apart from
 Finish polishing the MATLAB code. Add a more complete demo as a markdown file. 
 Overhaul docs.
 
-# 2023/08/24
-Outward message is now 12 bytes long to allow for stimulus duration and laser power to be sent.
-This is done as a pair of signed singles, so each is 4 bytes.
+# 2023/08/25
+Outward message is now 16 bytes long to allow for stimulus duration, stimulus delay, and laser power to be sent.
+This is done as three signed singles, so each is 4 bytes.
