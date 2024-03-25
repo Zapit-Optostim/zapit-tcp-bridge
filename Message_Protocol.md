@@ -91,6 +91,115 @@ Processing of the message is done by Zapit using the `processBufferMessageCallba
 This is the located in the Zapit package, not this one.
 
 
+## MATLAB worked example
+
+### **Before you start**
+
+
+1. The MATLAB folder from this repo must be in the MATLAB path on the client PC.
+2. You should have started Zapit with the "tcpServer" "enable" setting being "true" in the YML settings file.
+
+
+### **Start Zapit**
+
+For the purposes of this example, we'll start Zapit in  simulated mode, and 'calibrate'  in order to proceed to the next steps:
+
+```matlab
+>> start_zapit('simulated',true)
+
+% "calibrate" stereotaxic coords
+>> hZP.applyUnityStereotaxicCalib
+```
+
+### **Connect to the client**
+
+Now if we query whether there is a client connection:
+```matlab
+>> hZP.tcpServer.isClientConnected
+No client is connected to the TCP server
+```
+
+We should indeed see, as inidcate above, that there is no client connected (yet). To do this, we must create an instance of the TCPclient class:
+
+```matlab
+>> client = zapit_tcp_bridge.TCPclient;
+>> client.connect;
+```
+When called with no arguments the client initialises with the default arguments of tcp_port = 1488, tcp_ip = "127.0.0.1", which allows for connections on the localHost. If you wanted to connect to a different port or IP-address, these parameters would need to be specified when the client is initialised. For example, to connect to a machine with an IP-address of 172.24.243.155 you would create a client with the following:
+```matlab
+client = zapit_tcp_bridge.TCPclient('ip','172.24.243.155');
+client.connect;
+```
+
+### **Send a message**
+
+We can now send any of our 5 commands (listed above) using the client instance. For example, if we want to ask whether a stimulus configuration file is loaded:
+ ```matlab
+>> client.stimConfigLoaded
+
+ans =
+
+  single
+
+     0
+```
+This should yield zero, as we have not uploaded one yet. This can be done either using the GUI (on the top left corner, go to File>Load stim config) or using the method below:
+ ```matlab
+pathToExample = fullfile(zapit.updater.getInstallPath,'examples','example_stimulus_config_files');
+exampleFiles = dir(fullfile(pathToExample,'*.yml'));
+hZP.loadStimConfig(fullfile(pathToExample,exampleFiles(1).name))
+```
+If we verify again:
+ ```matlab
+>> hZP.stimConfig
+
+ans = 
+
+  stimConfig with properties:
+
+            configFileName: 'C:\zapit\examples\example_stimulus_config_files\uniAndBilateral_5_conditions.yml'
+            laserPowerInMW: 5
+      stimModulationFreqHz: 40
+             stimLocations: [1×5 struct]
+    offRampDownDuration_ms: 250
+               chanSamples: [25000×4×5 double]
+```
+We should get a reply with the details of the parameters of our stimulus config file.\
+Now let's suppose we wanted to stimulate condition 2, with 'hardwareTriggered' set to false and 'verbose'  set to true:
+ ```matlab
+>> [C,L]=client.sendSamples('hardwareTriggered',false, 'verbose',true, 'condition',2)
+Stimulating area 2
+
+C =
+
+  uint8
+
+   2
+
+
+L =
+
+  uint8
+
+   1
+```
+The first output specifies the condition that was presented, the second whether the laser was on. \
+To stop stimulating, simply call:
+
+ ```matlab
+>> client.stopOptoStim
+
+ans =
+  single
+     1
+```
+
+### **Disconnect the client**
+
+When finished, you can disconnect the client as folllows.
+ ```matlab
+>> delete(client)
+```
 
 
 
@@ -159,7 +268,7 @@ Now that we have our byte tuple `[b'\x01', b'\x13', b'\x02', b'\x04']`, we want 
 ```python
 from TCPclient import TCPclient
 ```
-Then, we need to crate an instance of the TCPclient class:
+Then, we need to create an instance of the TCPclient class:
 
 ```python
 client = TCPclient()

@@ -38,7 +38,7 @@
             <Expression xsi:type="IncludeWorkflow" Path="Extensions\Send_Samples.bonsai">
               <conditionNum_channel>true</conditionNum_channel>
               <laserOn_channel>true</laserOn_channel>
-              <hardwareTriggered_channel>false</hardwareTriggered_channel>
+              <hardwareTriggered_channel>true</hardwareTriggered_channel>
               <logging_channel>false</logging_channel>
               <verbose_channel>true</verbose_channel>
               <laser_ON>true</laser_ON>
