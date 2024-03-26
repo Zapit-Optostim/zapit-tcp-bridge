@@ -2,7 +2,7 @@ import socket
 import struct
 
 class TCPclient():
-    def __init__(self,tcp_port = 1488, tcp_ip = "127.0.0.1", buffer_size = 11) -> None:
+    def __init__(self,tcp_port = 1488, tcp_ip = "127.0.0.1", buffer_size = 16) -> None:
         self.tcp_port    = tcp_port
         self.tcp_ip      = tcp_ip
         self.buffer_size = buffer_size
@@ -30,8 +30,8 @@ class TCPclient():
         message_byte_obj = bytes(message_int_list)
         self.s.send(message_byte_obj)
         reply = self.s.recv(self.buffer_size)
-        timestamp = struct.unpack('d',reply[0:8])[0]
-        comm_byte = reply[8:9]
+        timestamp  = struct.unpack('d',reply[0:8])[0]
+        comm_byte  = reply[8:9]
         resp_byte0 = reply[9:10]
         resp_byte1 = reply[10:]
         return (timestamp, comm_byte, resp_byte0, resp_byte1)

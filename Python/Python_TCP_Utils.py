@@ -17,11 +17,13 @@ def gen_Zapit_byte_tuple(trial_state_command, arg_keys_dict, arg_values_dict):
     """
     # map arg_keys_dict to ints
     keys_to_int_dict = {"conditionNum_channel": 1, "laser_channel": 2, "hardwareTriggered_channel": 4,
-                        "logging_channel": 8, "verbose_channel": 16}
+                        "logging_channel": 8, "verbose_channel": 16, "stimDuration_channel": 32, "laserPower_mW_channel": 64,
+                        "startDelaySeconds_channel": 128}
 
     # map arg_values_dict to ints
     bool_values_to_int_dict = {"conditionNum": 1, "laser_ON": 2, "hardwareTriggered_ON": 4,
-                               "logging_ON": 8, "verbose_ON": 16}
+                               "logging_ON": 8, "verbose_ON": 16, "stimDuration_set": 32, "laserPower_mW_set": 64,
+                               "startDelaySeconds_set": 128}
 
     # map True/False boolean values to 1/0
     bool_to_int_dict = {True: 1, False: 0}
@@ -46,7 +48,10 @@ def gen_Zapit_byte_tuple(trial_state_command, arg_keys_dict, arg_values_dict):
                                  "numCondition": 4, "sendsamples": 1, "stopoptostim": 0}
     # convert state_command to byte
     state_command_byte = trial_state_command.to_bytes(1, 'big')
-     # if True, extract condition nb and convert to byte
+    # if True, extract condition nb and convert to byte
+    stimDuration = np.float32(-1) # Default stimDuration
+    laserPower_mW = np.float32(-1) # Place holder
+    startDelaySeconds = np.float32(0.0) # Default
     if arg_keys_dict['conditionNum_channel'] == True:
         conditionNum_int = arg_values_dict["conditionNum"]
         conditionNum_byte = conditionNum_int.to_bytes(1, 'big')
@@ -54,12 +59,17 @@ def gen_Zapit_byte_tuple(trial_state_command, arg_keys_dict, arg_values_dict):
         conditionNum_int = 255
         conditionNum_byte = conditionNum_int.to_bytes(1, 'big')
     if [k for k, v in trial_state_commands_dict.items() if v == trial_state_command][0] == "sendsamples": # if trial_state_command = "sendsamples"
-        zapit_com_bytes = [state_command_byte, arg_keys_byte, arg_values_byte, conditionNum_byte]
-        zapit_com_ints = [trial_state_command, arg_keys_int, arg_values_int, conditionNum_int]
+        zapit_com_bytes = state_command_byte + arg_keys_byte + arg_values_byte + conditionNum_byte + \
+                      float_to_byte_list(stimDuration) + float_to_byte_list(laserPower_mW) + float_to_byte_list(startDelaySeconds)        
+        zapit_com_ints = [trial_state_command, arg_keys_int, arg_values_int, conditionNum_int,stimDuration,laserPower_mW,startDelaySeconds]
     else:
-        zapit_com_bytes = [state_command_byte, (0).to_bytes(1, 'big'), (0).to_bytes(1, 'big'), (0).to_bytes(1, 'big')]  
-        zapit_com_ints = [trial_state_command, 0, 0, 0]
-    return zapit_com_bytes, zapit_com_ints
+        zapit_com_bytes = state_command_byte + (0).to_bytes(1, 'big') + (0).to_bytes(1, 'big') + (0).to_bytes(1, 'big') + float_to_byte_list(stimDuration) + float_to_byte_list(laserPower_mW) + float_to_byte_list(startDelaySeconds)
+        zapit_com_ints = [trial_state_command, 0, 0, 0, 0, 0, 0]
+    return [cur_val.to_bytes(1, 'big') for cur_val in list(zapit_com_bytes)], zapit_com_ints
+
+def float_to_byte_list(float_32):
+    bytes_list = struct.pack('f', float_32)
+    return bytes_list
 
 def datetime_float_to_str(date_float):
     """
