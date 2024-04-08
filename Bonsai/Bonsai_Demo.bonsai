@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<WorkflowBuilder Version="2.7.0"
+<WorkflowBuilder Version="2.8.1"
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                  xmlns:wie="clr-namespace:Bonsai.Windows.Input;assembly=Bonsai.Windows.Input"
                  xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
@@ -18,7 +18,7 @@
         <Name>Connect</Name>
         <Workflow>
           <Nodes>
-            <Expression xsi:type="IncludeWorkflow" Path="Extensions\Connect.bonsai">
+            <Expression xsi:type="IncludeWorkflow" Path="Extensions\basicMessage.bonsai">
               <Trial_Command>255</Trial_Command>
             </Expression>
           </Nodes>
@@ -40,10 +40,16 @@
               <laserOn_channel>true</laserOn_channel>
               <hardwareTriggered_channel>true</hardwareTriggered_channel>
               <logging_channel>false</logging_channel>
+              <Start_Delay_Channel>false</Start_Delay_Channel>
+              <Stim_Duration_Channel>false</Stim_Duration_Channel>
+              <Laser_Power_Channel>false</Laser_Power_Channel>
               <verbose_channel>true</verbose_channel>
               <laser_ON>true</laser_ON>
               <hardwareTriggered_ON>false</hardwareTriggered_ON>
               <logging_ON>false</logging_ON>
+              <Start_Delay_Seconds>0</Start_Delay_Seconds>
+              <Laser_Power_mW>0</Laser_Power_mW>
+              <Stim_Duration_Seconds>0</Stim_Duration_Seconds>
               <verbose_ON>false</verbose_ON>
               <conditionNum>4</conditionNum>
               <Trial_Command>0</Trial_Command>
@@ -62,7 +68,7 @@
         <Name>Stim_Conf_Loaded?</Name>
         <Workflow>
           <Nodes>
-            <Expression xsi:type="IncludeWorkflow" Path="Extensions\Stim_Conf_Loaded.bonsai">
+            <Expression xsi:type="IncludeWorkflow" Path="Extensions\basicMessage.bonsai">
               <Trial_Command>2</Trial_Command>
             </Expression>
           </Nodes>
@@ -79,7 +85,7 @@
         <Name>Zapit_State?</Name>
         <Workflow>
           <Nodes>
-            <Expression xsi:type="IncludeWorkflow" Path="Extensions\Zapit_State.bonsai">
+            <Expression xsi:type="IncludeWorkflow" Path="Extensions\basicMessage.bonsai">
               <Trial_Command>3</Trial_Command>
             </Expression>
           </Nodes>
@@ -96,7 +102,7 @@
         <Name>Get_Num_Conditions</Name>
         <Workflow>
           <Nodes>
-            <Expression xsi:type="IncludeWorkflow" Path="Extensions\Get_Num_Conditions.bonsai">
+            <Expression xsi:type="IncludeWorkflow" Path="Extensions\basicMessage.bonsai">
               <Trial_Command>4</Trial_Command>
             </Expression>
           </Nodes>
@@ -113,7 +119,7 @@
         <Name>Stop_Optostim</Name>
         <Workflow>
           <Nodes>
-            <Expression xsi:type="IncludeWorkflow" Path="Extensions\Stop_Optostim.bonsai">
+            <Expression xsi:type="IncludeWorkflow" Path="Extensions\basicMessage.bonsai">
               <Trial_Command>0</Trial_Command>
             </Expression>
           </Nodes>
@@ -130,7 +136,7 @@
         <Name>Disconnect</Name>
         <Workflow>
           <Nodes>
-            <Expression xsi:type="IncludeWorkflow" Path="Extensions\Disconnect.bonsai">
+            <Expression xsi:type="IncludeWorkflow" Path="Extensions\basicMessage.bonsai">
               <Trial_Command>254</Trial_Command>
             </Expression>
           </Nodes>

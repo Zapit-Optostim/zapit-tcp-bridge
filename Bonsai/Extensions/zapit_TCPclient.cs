@@ -17,7 +17,7 @@ public class zapit_TCPclient
     {
         tcp_port    = 1024;
         tcp_ip      = "127.0.0.1";
-        buffer_size = 11;
+        buffer_size = 16;
         connected   = false;        
     }
     private Tuple<double,byte,byte,byte> connect(int tcp_port, string tcp_ip, int buffer_size)
@@ -29,14 +29,25 @@ public class zapit_TCPclient
         Console.WriteLine("Connected to port " + this.tcp_port + " at address " + this.tcp_ip);
         return Tuple.Create(1.0,(byte)1, (byte)1, (byte)1);
     }
-    private Tuple<double,byte,byte,byte> send_receive(Tuple<byte, byte, byte, byte> message)
+    private Tuple<double,byte,byte,byte> send_receive(Tuple<byte, byte, byte, byte, float, float, float> message)
     {
-        var message_array = new byte[4];
+        var message_array = new byte[16];
         message_array[0] = message.Item1;
         message_array[1] = message.Item2;
         message_array[2] = message.Item3;
         message_array[3] = message.Item4;
+        // Convert float values to byte arrays
+        byte[] item5Bytes = BitConverter.GetBytes(message.Item5);
+        Array.Copy(item5Bytes, 0, message_array, 4, item5Bytes.Length);
+
+        byte[] item6Bytes = BitConverter.GetBytes(message.Item6);
+        Array.Copy(item6Bytes, 0, message_array, 8, item6Bytes.Length);
+
+        byte[] item7Bytes = BitConverter.GetBytes(message.Item7);
+        Array.Copy(item7Bytes, 0, message_array, 12, item7Bytes.Length);
+        Console.WriteLine(message_array.Length);
         this.nwStream.Write(message_array, 0, message_array.Length);
+        // Receive the response
         byte[] bytesToRead = new byte[this.client.ReceiveBufferSize];
         // Process incoming message
         var bytesRead = this.nwStream.Read(bytesToRead, 0, bytesToRead.Length);
@@ -67,7 +78,7 @@ public class zapit_TCPclient
     private bool connected { get; set; }
     private TcpClient client { get; set; }
     private NetworkStream nwStream { get; set; }
-    public IObservable<Tuple<double,byte,byte,byte>> Process(IObservable<Tuple<byte,byte,byte,byte>> source)
+    public IObservable<Tuple<double,byte,byte,byte>> Process(IObservable<Tuple<byte,byte,byte,byte, float, float, float>> source)
     {
         return source.Select(val =>
         {
