@@ -104,8 +104,8 @@ class TCPclient():
         arg_keys_dict = {"conditionNum": False, "laser_On": False, "hardwareTriggered_On": False,
                          "logging_On": False, "verbose_On": False, "stimDuration": False, "laserPower": False,
                          "startDelaySeconds": False}
-        arg_values_dict = {"conditionNum":0,"laser_On":True,"hardwareTriggered_ON":False,"logging_ON":False,"verbose_ON":False,
-                           "stimDuration":-1,"laserPower":0,"startDelaySeconds":0.0}
+        arg_values_dict = {"conditionNum":0,"laser_On":True,"hardwareTriggered_On":False,"logging_On":False,"verbose_On":False,
+                           "stimDuration":0.0,"laserPower":0.0,"startDelaySeconds":0.0}
         for key,value in kwargs.items():
             arg_keys_dict[key] = True
             arg_values_dict[key] = value

@@ -27,26 +27,37 @@ def gen_Zapit_byte_tuple(trial_state_command, arg_keys_dict, arg_values_dict):
     arg_keys_int = 0
     for arg, key in arg_keys_dict.items():
         arg_keys_int += bool_to_int_dict[key] * keys_to_int_dict[arg]
-        arg_keys_byte = arg_keys_int.to_bytes(1, 'big')
+    arg_keys_byte = arg_keys_int.to_bytes(1, 'big')
 
     # sum arg_value ints and convert to byte
     arg_values_int = 0
     for arg, value in arg_values_dict.items():
+        if arg == "conditionNum":
+            continue
         try:
             arg_values_int += bool_to_int_dict[value] * keys_to_int_dict[arg]
-            arg_values_byte = arg_values_int.to_bytes(1, 'big')
         except:
             pass
-
+    arg_values_byte = arg_values_int.to_bytes(1, 'big')
     # define trial states where python will query zapit
     trial_state_commands_dict = {"stimConfLoaded": 2, "return_state": 3,
                                  "numCondition": 4, "sendsamples": 1, "stopoptostim": 0}
     # convert state_command to byte
     state_command_byte = trial_state_command.to_bytes(1, 'big')
+    # extract the float parameters
+    if arg_keys_dict["stimDuration"] == True:
+        stimDuration = arg_values_dict["stimDuration"]
+    else:
+        stimDuration = np.float32(0.0) # Default stimDuration
+    if arg_keys_dict["laserPower"] == True:
+        laserPower_mW = arg_values_dict["laserPower"]
+    else:
+        laserPower_mW = np.float32(0.0) # Place holder
+    if arg_keys_dict["startDelaySeconds"] == True:
+        startDelaySeconds = arg_values_dict["startDelaySeconds"]
+    else:
+        startDelaySeconds = np.float32(0.0)
     # if True, extract condition nb and convert to byte
-    stimDuration = np.float32(-1) # Default stimDuration
-    laserPower_mW = np.float32(-1) # Place holder
-    startDelaySeconds = np.float32(0.0) # Default
     if trial_state_command == 1:
         if arg_keys_dict['conditionNum'] == True:
             conditionNum_int = arg_values_dict["conditionNum"]
