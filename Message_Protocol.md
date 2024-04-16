@@ -11,7 +11,7 @@ Only command **1** has input arguments: it takes a variable number of inputs and
 The remaining commands have no input arguments and return a single value. 
 
 ### Messages to the server
-Messages to the server always consist of **4 bytes** (*stored as little-endian*).
+Messages to the server always consist of **16 bytes** (*stored as little-endian*).
 The first byte consists of the **command number** (given above).
 The remaining bytes are by default set to **0**, and are only used if the command number is **1** (i.e., if we are calling the `sendSamples` method).
 In this case, the message structure is as follows:
@@ -21,12 +21,16 @@ In this case, the message structure is as follows:
   2. Bitmask indicating the **boolean values of the key-value pairs** given to `sendSamples`
   3. Byte indicating the **condition number** to pass to `sendSamples`
 
-Possible arguments to `sendSamples` are **{`conditionNum`, `laserOn`, `hardwareTriggered`, `logging`, `verbose`}**.
-Each of the 5 lowest significant bits of **byte 1** in the message corresponds to these arguments, with the bit set to 1 if the key-value pair is to passed of 0 if it is not to be passed.
+  * Bytes 4 to 7 the number of seconds for the stimulus duration sent as a signed single.
+  * Bytes 8 to 11 are the laser power in mW sent as a signed single.
+  * Bytes 12 to 15 the number of seconds for the optional stimulus delay sent as a signed single.
+
+Possible arguments to `sendSamples` are **{`conditionNum`, `laserOn`, `hardwareTriggered`, `logging`, `verbose`,`stimDuration`, `laserPower`, `startDelaySeconds`}**.
+The 8 bits of **byte 1** in the message corresponds to these arguments, with the bit set to 1 if the key-value pair is to passed of 0 if it is not to be passed.
 For example, if we are sending arguments for `conditionNum`, `laserOn` and `logging`, byte 1 will have memory layout `0 0 0 0 1 0 1 1`, for a value of 11 (read the list of keys from right to left to get the position in the byte).
 
 
-**Byte 2** in the message carries the values for the key-value pairs that have **boolean values** ({`laserOn`, `hardwareTriggered`, `logging`, `verbose`}), in the same positions as for byte 1.
+**Byte 2** in the message carries the values for the key-value pairs that have **boolean values** ({`laserOn`, `hardwareTriggered`, `logging`, `verbose`, `stimDuration`, `laserPower`, `startDelaySeconds`}), in the same positions as for byte 1.
 `conditionNum` has an integer value so is not communicated in this byte.
 For example, if we are sending the following key-value pairs 
 **{`laserOn`:`true`, `hardwareTriggered`:`true`, `verbose`:`false`}** then **byte 1** would have layout **`0 0 0 1 0 1 1 0`** and **byte 2** would have layout **`0 0 0 0 0 1 1 0`**.
@@ -87,6 +91,115 @@ Processing of the message is done by Zapit using the `processBufferMessageCallba
 This is the located in the Zapit package, not this one.
 
 
+## MATLAB worked example
+
+### **Before you start**
+
+
+1. The MATLAB folder from this repo must be in the MATLAB path on the client PC.
+2. You should have started Zapit with the "tcpServer" "enable" setting being "true" in the YML settings file.
+
+
+### **Start Zapit**
+
+For the purposes of this example, we'll start Zapit in  simulated mode, and 'calibrate'  in order to proceed to the next steps:
+
+```matlab
+>> start_zapit('simulated',true)
+
+% "calibrate" stereotaxic coords
+>> hZP.applyUnityStereotaxicCalib
+```
+
+### **Connect to the client**
+
+Now if we query whether there is a client connection:
+```matlab
+>> hZP.tcpServer.isClientConnected
+No client is connected to the TCP server
+```
+
+We should indeed see, as inidcate above, that there is no client connected (yet). To do this, we must create an instance of the TCPclient class:
+
+```matlab
+>> client = zapit_tcp_bridge.TCPclient;
+>> client.connect;
+```
+When called with no arguments the client initialises with the default arguments of tcp_port = 1488, tcp_ip = "127.0.0.1", which allows for connections on the localHost. If you wanted to connect to a different port or IP-address, these parameters would need to be specified when the client is initialised. For example, to connect to a machine with an IP-address of 172.24.243.155 you would create a client with the following:
+```matlab
+client = zapit_tcp_bridge.TCPclient('ip','172.24.243.155');
+client.connect;
+```
+
+### **Send a message**
+
+We can now send any of our 5 commands (listed above) using the client instance. For example, if we want to ask whether a stimulus configuration file is loaded:
+ ```matlab
+>> client.stimConfigLoaded
+
+ans =
+
+  single
+
+     0
+```
+This should yield zero, as we have not uploaded one yet. This can be done either using the GUI (on the top left corner, go to File>Load stim config) or using the method below:
+ ```matlab
+pathToExample = fullfile(zapit.updater.getInstallPath,'examples','example_stimulus_config_files');
+exampleFiles = dir(fullfile(pathToExample,'*.yml'));
+hZP.loadStimConfig(fullfile(pathToExample,exampleFiles(1).name))
+```
+If we verify again:
+ ```matlab
+>> hZP.stimConfig
+
+ans = 
+
+  stimConfig with properties:
+
+            configFileName: 'C:\zapit\examples\example_stimulus_config_files\uniAndBilateral_5_conditions.yml'
+            laserPowerInMW: 5
+      stimModulationFreqHz: 40
+             stimLocations: [1×5 struct]
+    offRampDownDuration_ms: 250
+               chanSamples: [25000×4×5 double]
+```
+We should get a reply with the details of the parameters of our stimulus config file.\
+Now let's suppose we wanted to stimulate condition 2, with 'hardwareTriggered' set to false and 'verbose'  set to true:
+ ```matlab
+>> [C,L]=client.sendSamples('hardwareTriggered',false, 'verbose',true, 'condition',2)
+Stimulating area 2
+
+C =
+
+  uint8
+
+   2
+
+
+L =
+
+  uint8
+
+   1
+```
+The first output specifies the condition that was presented, the second whether the laser was on. \
+To stop stimulating, simply call:
+
+ ```matlab
+>> client.stopOptoStim
+
+ans =
+  single
+     1
+```
+
+### **Disconnect the client**
+
+When finished, you can disconnect the client as folllows.
+ ```matlab
+>> delete(client)
+```
 
 
 
@@ -96,7 +209,9 @@ This is the located in the Zapit package, not this one.
 
 ### **Generating a communication tuple**
 
-As described above, messages to the server must always consist of 4 bytes: the command (indicated by a number), the argument keys, the argument values, and the condition number. Now let's say we want to send the command number 1 (sendSamples), we wish to communicate along the `conditionNum`, `laserOn` and `verbose` channels, and we wish to set the `conditionNum` to `4`, `laserOn` to `True` and `verbose` to `False` (n.b. remember that if the command number is anything else than 1, all other bytes will be set to 0).
+Whilst the Python client contains methods to interact with the server without explicitly constructing messages, we provide a worked example here where messages are constructed explicitly, in order to give a further example of how the messaging protocol works.
+
+As described above, messages to the server must always consist of 16 bytes: the command (indicated by a number), the argument keys, the argument values, and the condition number, followed by the 3 floats that give the `stimDuration`,`laserPower`,`startDelaySeconds` optional arguments. Now let's say we want to send the command number 1 (sendSamples), we wish to communicate along the `conditionNum`, `laserOn` and `verbose` channels, and we wish to set the `conditionNum` to `4`, `laserOn` to `True` and `verbose` to `False` (n.b. remember that if the command number is anything else than 1, all other bytes will be set to 0).
 In order to send this command to the server, we must first generate a byte tuple containing this information. We can do this by calling the `gen_Zapit_byte_tuple` function from the `Python_TCP_Utils` module. First we import the module:
 
 ```python
@@ -107,18 +222,18 @@ Then, we call `gen_Zapit_byte_tuple`. This function takes 3 arguments: the trial
  Therefore, to send the message specified above, we must call:
 
 ```python
-zapit_byte_tuple = ptu.gen_Zapit_byte_tuple(trial_state_command = 1,
-                                            arg_keys_dict = {'conditionNum_channel': True, 'laser_channel': True, 
-                                                              'hardwareTriggered_channel': False, 'logging_channel': False, 
-                                                              'verbose_channel': True},
-                                            arg_values_dict = {'conditionNum': 4, 'laser_ON': True, 
-                                                               'hardwareTriggered_ON': False, 'logging_ON': False, 
-                                                               'verbose_ON': False})
+zapit_byte_tuple,_ = ptu.gen_Zapit_byte_tuple(trial_state_command = 1,
+                                            arg_keys_dict = {'conditionNum': True, 'laser_On': True, 
+                                                              'hardwareTriggered_On': False, 'logging_On': False, 
+                                                              'verbose_On': True, 'stimDuration': False, 'laserPower': False, 'startDelaySeconds': False},
+                                            arg_values_dict = {'conditionNum': 4, 'laser_On': True, 
+                                                               'hardwareTriggered_On': False, 'logging_On': False, 
+                                                               'verbose_On': False, 'stimDuration':0.0, 'laserPower':0.0, 'startDelaySeconds':0.0})
 ```
 
 Printing `zapit_byte_tuple` should yield:
 ```python
-[b'\x01', b'\x13', b'\x02', b'\x04']
+[b'\x01', b'\x13', b'\x02', b'\x04', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00']
 ```
 
 Unless you are used to working with binary data or low-level programming languages, this result is probably quite cryptic. Let's dig a little bit to understand what it means. 
@@ -128,34 +243,56 @@ We can convert this byte tuple into a integer tuple using list comprehension:
 ```python
 zapit_int_tuple = tuple([int(b[0]) for b in zapit_byte_tuple])
 print(zapit_int_tuple)
-(1, 19, 2, 4)
+(1, 19, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ```
 
-What do these integers represent? What the gen_Zapit_byte_tuple() function is actually doing is using **[bitmasks](https://en.wikipedia.org/wiki/Mask_(computing))** to represent the set of boolean and integer values that are being communicated with the server. It is mapping boolean keys and values to integer values and then combining them together to produce integers with specific patterns. This is done using 3 dictionaries, mapping argument keys to integers, argument values to integers, and booleans to integers, respectively. We can view these three dictionaries below:
+What do these integers represent? What the gen_Zapit_byte_tuple() function is actually doing is using **[bitmasks](https://en.wikipedia.org/wiki/Mask_(computing))** for the first 3 numbers to represent the set of boolean and integer values that are being communicated with the server. It is mapping boolean keys and values to integer values and then combining them together to produce integers with specific patterns. This is done using 2 dictionaries, mapping argument keys and argument values to integers, and booleans to integers, respectively. We can view these two dictionaries below:
 
 ```python
-keys_to_int_dict = {"conditionNum_channel": 1, "laser_channel": 2, "hardwareTriggered_channel": 4,
-                    "logging_channel": 8, "verbose_channel": 16}
-
-values_to_int_dict = {"conditionNum": 1, "laser_ON": 2, "hardwareTriggered_ON": 4,
-                      "logging_ON": 8, "verbose_ON": 16}
+keys_to_int_dict = {"conditionNum": 1, "laser_On": 2, "hardwareTriggered_On": 4,
+                        "logging_On": 8, "verbose_On": 16, "stimDuration": 32, "laserPower": 64,
+                        "startDelaySeconds": 128}
 
 bools_to_int_dict = {True: 1, False: 0}
 ```
 
-Let's consider our example above. First, our trial command is 1, so the first element of our `zapit_int_tuple` is `1`. Second, our `conditionNum`, `laserOn` and `verbose` keys are `True`, while all the others are `False`. Applying our `keys_to_int_dict` mapping, we get &nbsp; `1x1 + 2x1 + 4x0 + 8x0 + 16x1 = 19` &nbsp;  as the second element of out `zapit_int_tuple`. Third, we set `laserOn` to `True` and  `verbose` to `False`, obtaining &nbsp;  `2x1 + 16x0 = 2` &nbsp;  as the third element. Finally, with a conditionNum of 4, we get &nbsp;  `4x1 = 4` &nbsp;  as the fourth element of our tuple. We therefore end up with `(1,19,2,4)`. It is noteworthy that, although useful for demonstration purposes, this zapit_int_tuple never comes into play during the communication with the server as the output of `gen_Zapit_byte_tuple()` is a byte tuple, and not an integer tuple.
+Let's consider our example above. First, our trial command is 1, so the first element of our `zapit_int_tuple` is `1`. Second, our `conditionNum`, `laserOn` and `verbose` keys are `True`, while all the others are `False`. Applying our `keys_to_int_dict` mapping, we get &nbsp; `1x1 + 2x1 + 4x0 + 8x0 + 16x1 = 19` &nbsp;  as the second element of out `zapit_int_tuple`. Third, we set `laserOn` to `True` and  `verbose` to `False`, obtaining &nbsp;  `2x1 + 16x0 = 2` &nbsp;  as the third element. Finally, with a conditionNum of 4, we get &nbsp;  `4x1 = 4` &nbsp;  as the fourth element of our tuple. We therefore end up with `(1,19,2,4)` for the first 4 numbers.  For the final 12 numbers, these parts of the array are used to store the 32bit (4 bytes each) floats that communicate the `stimDuration`, the `laserPower` and the `startDelaySeconds`, respectively.  Since these channels were all set to `False` in the `arg_keys_dict`, their provided values are 0.  It is noteworthy that, although useful for demonstration purposes, this zapit_int_tuple never comes into play during the communication with the server as the output of `gen_Zapit_byte_tuple()` is a byte tuple, and not an integer tuple.
 
+Let's look at one final example
 
+```python
+zapit_byte_tuple,_ = ptu.gen_Zapit_byte_tuple(trial_state_command = 1,
+                                            arg_keys_dict = {'conditionNum': True, 'laser_On': True, 
+                                                              'hardwareTriggered_On': False, 'logging_On': True, 
+                                                              'verbose_On': False, 'stimDuration': True, 'laserPower': False, 'startDelaySeconds': False},
+                                            arg_values_dict = {'conditionNum': 4, 'laser_On': True, 
+                                                               'hardwareTriggered_On': False, 'logging_On': True, 
+                                                               'verbose_On': False, 'stimDuration':2.1, 'laserPower':1.1, 'startDelaySeconds':0.5})
+```
+Now, printing `zapit_byte_tuple` should yield:
+```python
+[b'\x01', b'+', b'\n', b'\x04', b'f', b'f', b'\x06', b'@', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00']
+```
+
+and re-interpreting these as integers gives 
+
+```python
+zapit_int_tuple = tuple([int(b[0]) for b in zapit_byte_tuple])
+print(zapit_int_tuple)
+(1, 43, 10, 4, 102, 102, 6, 64, 0, 0, 0, 0, 0, 0, 0, 0)
+```
+
+Again, we have a `1` in the first slot, since we're using the send samples command.  To get the `43` in the second slot, see that we have set `conditionNum`, `laser_On`, `logging_On` and `stimDuration` all to `True`, which correspond to `1`, `2`, `8` and `32`.  Adding these together gives `43`, which is the value in the second byte.  In the third byte we have `10`, which comes from summing together `2`, which comes from `laser_On` being `True` in `arg_values_dict`, and `8`, which comes from `logging_On` being `True` in the `arg_values_dict`.  The next 4 bytes are `102`,`102`,`6`,`64`.  If you take this memory and cast it to a 32-bit floating point number, you get `2.1`, which is the provided value for `stimDuration`.  Even though the `laserPower` and `startDelaySeconds` have values in the `arg_values_dict`, they are set to `False` in the `arg_keys_dict`, so they are set to default values of `0` in the message.  
 
 ### **Sending to the server**
 
-Now that we have our byte tuple `[b'\x01', b'\x13', b'\x02', b'\x04']`, we want to send it to the server. We can do this using a TCP (Transmission Control Protocol) client. To do this, we import the `TCPclient` class from the `TCPclient` module:
+Now that we have our byte tuple, we want to send it to the server. We can do this using a TCP (Transmission Control Protocol) client. To do this, we import the `TCPclient` class from the `TCPclient` module:
 
 
 ```python
 from TCPclient import TCPclient
 ```
-Then, we need to crate an instance of the TCPclient class:
+Then, we need to create an instance of the TCPclient class:
 
 ```python
 client = TCPclient()
@@ -176,7 +313,7 @@ Once the connection is established, we can call the `send_receive()` method to s
 ```python
 response = client.send_receive(zapit_byte_tuple)
 ```
-The `response` will be a tuple of 4 elements. If the connection is established, the first element of the tuple will be the current datetime as a `double`. The other three elements are bytes. The second element will be the trial command. The third and fourth elements will be depend on the trial command. If the trial command is 1 (`sendSamples`), the third element will be `conditionNum` and the fourth with be the `laserOn`. If the trial command is 0 (`stopOptoStim`), the third element will be the response will be `1` and the fourth element will be `255`. If the trial command is `2-4`, the third element will be the response to the query and the fourth element will be `255`. If the connection with the TCPclient is not established, the method should return `(-1.0, b"\x00", b"\x00", b"\x01")`. Therefore, in our case, the response will be `(739002.8009685668, b'\x01', b'\x04', b'\x01')`.
+The `response` will be a tuple of 4 elements that are used.  There is some remaining memory in the reply that for now is left to future use cases. If the connection is established, the first element of the tuple will be the current datetime as a `double`. The other three elements are bytes. The second element will be the trial command. The third and fourth elements will be depend on the trial command. If the trial command is 1 (`sendSamples`), the third element will be `conditionNum` and the fourth with be the `laserOn`. If the trial command is 0 (`stopOptoStim`), the third element will be the response will be `1` and the fourth element will be `255`. If the trial command is `2-4`, the third element will be the response to the query and the fourth element will be `255`. If the connection with the TCPclient is not established, the method should return `(-1.0, b"\x00", b"\x00", b"\x01")`. Therefore, in our case, the response will be `(739002.8009685668, b'\x01', b'\x04', b'\x01')`.
 
 
 
@@ -217,17 +354,23 @@ For a quick demonstration of how the TCP communication works in Bonsai, open the
 ```
 -  trial__command = 1
 -  arg_keys:
-   - conditionNum_channel =  True
-   - laser_channel = True
-   - hardwareTriggered_channel = False
-   - logging_channel = False
-   - verbose_channel = True
+   - conditionNum =  True
+   - laser_On = True
+   - hardwareTriggered_On = False
+   - logging_On = False
+   - verbose_On = True
+   - stimDuration = False
+   - laserPower = False
+   - startDelaySeconds = False
  - arg_values:
    - conditionNum = 4
    - laser_ON = True
    - hardwareTriggered_ON = False
    - logging_ON = False
    - verbose_ON = False
+   - stimDuration = 0.0
+   - laserPower = 0.0
+   - startDelaySeconds = 0.0
 ```
 
 Once you have set these parameters, launch the program by clicking the green `Start` button at the top left. The workflow is built to respond to key-presses (hence the `KeyDown` node) that emulate the Start/Connection (key S), Trial (key T), and End/Disconnection (key E) of an experimental session (this is the work of the `Set_Session_Epoch` node). The `Gen_Zapit_Byte_Tuple`, `Gen_Zapit_Byte_Tuple` and `Parse_Server_Response` nodes behave in the same way as the functions in the Python demonstration with the same names. Importantly, all of the nodes following the `KeyDown` execute in sequence once a key pressed. Right clicking on the nodes will allow you to select `Show Visualizer > Bonsai.Design.ObjectTextVisualizer` and print the outputs of the `Gen_Zapit_Byte_Tuple` and `Parse_Server_Response` nodes on the screen. Using the example above, pressing `S` should yield:

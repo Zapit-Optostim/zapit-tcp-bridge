@@ -2,7 +2,6 @@ classdef TCPclient < handle
 
     properties (Hidden)
         listeners
-        bytesToRead = 15 % Number of bytes in the message
     end
 
     properties
@@ -56,35 +55,29 @@ classdef TCPclient < handle
 
         end % Constructor
 
-        function response = connect(obj)
+
+        function connect(obj)
             % Build the client
             if obj.connected
-                % Message to connect whilst already connected
-                response = {-1.0,uint8(0),uint8(1),uint8(0)};
-                return
-            else
-                % Message to connect whilst not connected
-                obj.hSocket = tcpclient(obj.ip, obj.port);
-                % Read all bytes in the message then call then process data with a callback
-                configureCallback(obj.hSocket, "byte", obj.bytesToRead, @obj.readDataFcn);
-                obj.connected = true;
-                response = {1.0,uint8(1),uint8(1),uint8(1)};
                 return
             end
+
+            % Message to connect whilst not connected
+            obj.hSocket = tcpclient(obj.ip, obj.port);
+
+            % Read all bytes in the message then call then process data with a callback
+            configureCallback(obj.hSocket, "byte", zapit_tcp_bridge.constants.numBytesToRead, @obj.readDataFcn);
+            obj.connected = true;
+
         end
 
-        function response = close(obj)
+
+        function close(obj)
             if obj.connected
                 % Message to disconnect whilst connected
                 delete(obj.hSocket);
                 disp("TCPclient connection closed")
                 obj.connected=false;
-                response = {-1.0,uint8(1),uint8(0),uint8(0)};
-                return
-            else
-                % Message to disconnect whilst not connected
-                response = {-1.0,uint8(0),uint8(1),uint8(0)};
-                return
             end
         end % close
 
@@ -160,7 +153,6 @@ classdef TCPclient < handle
             end
 
             tDict = containers.Map([0,1,2], {'idle', 'active', 'rampdown'});
-            returnVal
             reply = tDict(returnVal);
 
         end % getState
@@ -197,16 +189,27 @@ classdef TCPclient < handle
             %
             %
             % Inputs [param/value pairs]
-            % 'conditionNum' - Integer but empty by default. This is the index of the
-            %               condition number to present. If empty or -1 a random one is
-            %               chosen.
-            % 'laserOn' - [bool, true by default] If true the laser is on. If false the
-            %             galvos move but the laser is off. If empty or -1, a random laser
-            %
-            % 'hardwareTriggered' [bool, true by default] If true the DAQ waits for a
-            %             hardware trigger before presenting the waveforms.
-            % 'logging' - [bool, true by default] If true we write log files automatically
-            %             if the user has defined a valid directory in zapit.pointer.experimentPath.
+            % 'conditionNum' - Integer but empty by default. This is the index of the condition
+            %                  number to present. If empty or -1 a random one is chosen.
+            % 'laserOn' - [bool, true by default] If true the laser is on. If false the galvos move
+            %             but the laser is off. If empty or -1, a random laser state is chosen.
+            %             Note: The laserOn parameter takes precedence over laserPower_mw.
+            % 'stimDurationSeconds' - [scalar float, -1 by default] If >0 once the waveform is sent
+            %             to the DAQ and begins to play it will do so for a pre-defined time
+            %             period before ramping down and stopping. e.g. if stimDurationSeconds is
+            %             1.5 then the waveform will play for 1.5 seconds then will ramp down and
+            %             stop.
+            % 'startDelaySeconds' - [scalar float, 0 by default] This setting is only valid if
+            %             stimDurationSeconds is >0. Otherwise it is ignored. A delay of this many
+            %             seconds is added to finite stimulus durations. This is going to be most
+            %             useful for cases where the stimulus is triggered by a TTL pulse.
+            % 'laserPower_mw' - By default the value in the stim config file is used. If this is
+            %             provided, the stim config value is ignored. The value actually presented
+            %             is always logged to the experiment log file.
+            % 'hardwareTriggered' [bool, true by default] If true the DAQ waits for a hardware
+            %             trigger before presenting the waveforms.
+            % 'logging' - [bool, true by default] If true we write log files automatically if the
+            %             user has defined a valid directory in zapit.pointer.experimentPath.
             % 'verbose' - [bool, false by default] If true print debug messages to screen.
             %
             %
@@ -223,6 +226,9 @@ classdef TCPclient < handle
             params.CaseSensitive = false;
             params.addParameter('conditionNumber', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('laserOn', [], @(x) isempty(x) || islogical(x) || x == 0 || x == 1 || x == -1);
+            params.addParameter('stimDurationSeconds', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
+            params.addParameter('startDelaySeconds', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
+            params.addParameter('laserPower_mw', [], @(x) isnumeric(x) && (isscalar(x) || isempty(x) || x == -1));
             params.addParameter('hardwareTriggered', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
             params.addParameter('logging', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
             params.addParameter('verbose', [], @(x) isempty(x) || islogical(x) || x==0 || x==1);
@@ -247,7 +253,7 @@ classdef TCPclient < handle
 
             reply = obj.send_receive(messageToSend);
 
-            if reply.success==1
+            if ~isempty(reply) && reply.success==1
                 conditionNumber = reply.response_tuple(1);
                 laserOn = reply.response_tuple(2);
             else
@@ -270,7 +276,8 @@ classdef TCPclient < handle
             %        If first byte is 254 we close the connection
             %
             % Inputs
-            % bytes_so_send - vector of length 4 produced by gen_Zapit_byte_tuple, for instance.
+            % bytes_so_send - vector of length "numBytesToSend" produced by
+            %                 gen_sendSamples_byte_tuple, for instance.
             %
             % Outputs
             % out - processed reply from server formatted as a structure:
@@ -290,18 +297,21 @@ classdef TCPclient < handle
             %     statusMessage: 'MessageMatches'
 
 
-            if length(bytes_to_send) ~= 4
-                fprintf('Command message must be 4 bytes long\n')
+
+
+            if length(bytes_to_send) ~= zapit_tcp_bridge.constants.numBytesToSend
+                fprintf('Command message must be %d bytes long but was %d bytes\n', ...
+                    zapit_tcp_bridge.constants.numBytesToSend, length(bytes_to_send))
+                out = [];
                 return
             end
 
-            % TODO -- what is the idea behind the connection and disconnection codes?
+            % TODO -- what is the idea behind this?
             if bytes_to_send(1) == 255
-                reply = obj.connect(obj);
+                obj.connect(obj);
             elseif bytes_to_send(1) == 254
-                reply = obj.close(obj);
+                obj.close(obj);
             elseif (bytes_to_send(1) < 254) && ~obj.connected
-                reply = {-1.0,uint8(0),uint8(0),uint8(1)};
                 return
             end
 
@@ -333,6 +343,14 @@ classdef TCPclient < handle
             % Inputs
             % bytes_to_send - vector of bytes to send. (uint8)
 
+            if length(bytes_to_send) ~= zapit_tcp_bridge.constants.numBytesToSend
+                fprintf(['TCPclient.sendMessage expects "bytes_to_send" to be %d bytes long. ', ...
+                'Actual value is %d\n'], ...
+                zapit_tcp_bridge.constants.numBytesToSend, length(bytes_to_send))
+
+                return
+            end
+
             % Wipe the buffer
             obj.buffer =  struct('bytes_to_send', bytes_to_send, ...
                                 'datetime', -1.0, ...
@@ -353,9 +371,10 @@ classdef TCPclient < handle
             % Bytes 10 and 11 are the response itself
             % The remaining four bytes are unused and reserved for future use.
 
-            msg = read(src, obj.bytesToRead, "uint8");
+            msg = read(src, zapit_tcp_bridge.constants.numBytesToRead, "uint8");
 
             obj.buffer.datetime = typecast(msg(1:8),'double');
+            obj.buffer.datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
             obj.buffer.message_type = msg(9);
             obj.buffer.response_tuple = msg(10:15);
 
@@ -367,7 +386,6 @@ classdef TCPclient < handle
                 statusMessage = 'Connected';
                 success = true;
             else
-                datetime_str = zapit_tcp_bridge.datetime_float_to_str(obj.buffer.datetime);
                 % Check that Zapit is responding to the right message_type (e.g. sendSamples)
                 if obj.buffer.message_type ~= obj.buffer.bytes_to_send(1)
                     statusMessage = 'Mismatch';
@@ -385,17 +403,34 @@ classdef TCPclient < handle
 
         function [response,fullReply] = runWrapper(obj)
             % Called by wrapper functions to run a common command
+
             if ~obj.connected
-                reply = [];
+                response = [];
+                fullReply = [];
                 fprintf('Not connected to Server!\n')
                 return
             end
+
+            % We want to get the caller method name but this is complicated slightly
+            % by the fact that if we run this as a unittest there are lot of extra
+            % callers in the stack from that. So we want the last caller that is a
+            % method of this class.
             st = dbstack;
-            callerMethodName = regexprep(st(end).name,'.*\.','');
-            messageToSend = zapit_tcp_bridge.constants.(callerMethodName);
+            t_callers_ind = strmatch('TCPclient.',{st.name});
+            lastCallerFullName = st(t_callers_ind(end)).name;
+            callerMethodName = regexprep(lastCallerFullName,'.*\.','');
+
+            messageToSend = zeros(1,zapit_tcp_bridge.constants.numBytesToSend);
+            messageToSend(1) = zapit_tcp_bridge.constants.(callerMethodName);
+
             fullReply = obj.send_receive(messageToSend);
-            response = single(fullReply.response_tuple(1));
-        end
+
+            if isempty(fullReply)
+                response = [];
+            else
+                response = single(fullReply.response_tuple(1));
+            end
+        end % runWrapper
 
 
         function zapit_com_bytes = gen_sendSamples_byte_tuple(obj,arg_values_dict)
@@ -410,7 +445,7 @@ classdef TCPclient < handle
             % arg_keys_dict
             %
             % Outputs
-            % zapit_com_bytes - 4 byte message to send to Zapit (see above)
+            % zapit_com_bytes - "numBytesToSend" byte message to send to Zapit (see above)
             %
             %
 
@@ -439,16 +474,22 @@ classdef TCPclient < handle
                     continue
                 end
 
-                if strcmp(arg,'conditionNumber')
+                if strcmp(arg,'conditionNumber') || ...
+                    strcmp(arg,'stimDurationSeconds') || ...
+                    strcmp(arg,'laserPower_mw') || ...
+                    strcmp(arg,'startDelaySeconds')
+
+                    % These are the values that have integers or floats associated with them
                     arg_values_int = arg_values_int + keys_to_int_dict(arg);
                 else
                     arg_values_int = arg_values_int + tValue * keys_to_int_dict(arg);
                 end
 
                 arg_keys_int = arg_keys_int + keys_to_int_dict(arg);
-            end
+            end % for arg = keys(keys_to_int_dict)
 
-            % If true, extract condition number and convert to byte
+
+            % Set values for scalar arguments
             if isKey(arg_values_dict, 'conditionNumber') && ...
                 ~isempty(arg_values_dict('conditionNumber'))
                 conditionNum_int = arg_values_dict('conditionNumber');
@@ -456,11 +497,43 @@ classdef TCPclient < handle
                 conditionNum_int = 255;
             end
 
+
+            if isKey(arg_values_dict, 'stimDurationSeconds') && ...
+                ~isempty(arg_values_dict('stimDurationSeconds'))
+
+                stimDur = arg_values_dict('stimDurationSeconds');
+            else
+                stimDur = -1;
+            end
+
+            if isKey(arg_values_dict, 'laserPower_mw') && ...
+                ~isempty(arg_values_dict('laserPower_mw'))
+
+                laserPower = arg_values_dict('laserPower_mw');
+            else
+                laserPower = -1;
+            end
+
+            if isKey(arg_values_dict, 'startDelaySeconds') && ...
+                ~isempty(arg_values_dict('startDelaySeconds'))
+
+                stimDelay = arg_values_dict('startDelaySeconds');
+            else
+                stimDelay = 0;
+            end
+
+
             % First byte is 1 because we are doing sendSamples
-            zapit_com_bytes = uint8([1, arg_keys_int, arg_values_int, conditionNum_int]);
+            zapit_com_bytes = uint8([ 1, ...
+                            arg_keys_int, ...
+                            arg_values_int, ...
+                            conditionNum_int, ...
+                            typecast(single(stimDur),'uint8'), ...
+                            typecast(single(laserPower),'uint8'), ...
+                            typecast(single(stimDelay),'uint8') ]);
 
-        end
+        end % gen_sendSamples_byte_tuple
 
-    end
+    end % methods
 
 end % TCPclient

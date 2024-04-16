@@ -1,8 +1,8 @@
-# Zapit TCP/IP comms demo 
+# Zapit TCP/IP Comms Demo 
 
 ## Before you start
-1. The MATLAB folder from this repo must be in the MATLAB path on the client PC.
-2. You should have started Zapit with the "tcpServer" "enable" setting being "true" in the YML settings file.
+1. The MATLAB folder from this repo must be in the MATLAB path on the client PC. **DO NOT "ADD WITH SUB-FOLDERS"!!**
+2. You should have started Zapit with the `tcpServer` `enable` setting being `true` in the YML settings file.
 
 ## Available commands 
 The TCP client makes available the following commands that interface with the Zapit server. 
@@ -143,7 +143,9 @@ L =
 
 ```
 
-Of course you can specify particular stimulus conditions and stop stimulation
+NOTE: In the above example we switch from on randomly chosen condition to another immediately without ramping down.
+The stimuli run continuously until instructed otherwise. 
+Of course you can specify particular stimulus conditions and stop stimulation on demand:
 ```
 % Note the command accepts truncated parameter names. Here "cond" instead of "conditionNum".
 >> [C,L]=client.sendSamples('hardwareTriggered',false,'cond',2)
@@ -163,7 +165,17 @@ ans =
      1
 ```
 
-When finished you disconnect the client as folllows.
+Finally, you can specify conditions of a particular duration and optional start delay defined in seconds. 
+```
+% Note the command accepts truncated parameter names. Here "cond" instead of "conditionNum".
+>> [C,L]=client.sendSamples('hardwareTrig',true,'cond',2,'startDelay',0.25,'stimDuration',1);
+```
+
+In the above scenario the rampdown happens at the end of the stimulus. 
+There is no need to call `stopOptoStim`.
+
+
+When finished you disconnect the client as follows:
 ```matlab
 >> delete(client)
 ```
