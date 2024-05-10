@@ -44,19 +44,10 @@ def gen_Zapit_byte_tuple(trial_state_command, arg_keys_dict, arg_values_dict):
                                  "numCondition": 4, "sendsamples": 1, "stopoptostim": 0}
     # convert state_command to byte
     state_command_byte = trial_state_command.to_bytes(1, 'big')
-    # extract the float parameters
-    if arg_keys_dict["stimDuration"] == True:
-        stimDuration = arg_values_dict["stimDuration"]
-    else:
-        stimDuration = np.float32(0.0) # Default stimDuration
-    if arg_keys_dict["laserPower"] == True:
-        laserPower_mW = arg_values_dict["laserPower"]
-    else:
-        laserPower_mW = np.float32(0.0) # Place holder
-    if arg_keys_dict["startDelaySeconds"] == True:
-        startDelaySeconds = arg_values_dict["startDelaySeconds"]
-    else:
-        startDelaySeconds = np.float32(0.0)
+    # Establish default parameters
+    stimDuration = np.float32(0.0) 
+    laserPower_mW = np.float32(0.0) 
+    startDelaySeconds = np.float32(0.0)    
     # if True, extract condition nb and convert to byte
     if trial_state_command == 1:
         if arg_keys_dict['conditionNum'] == True:
@@ -65,6 +56,13 @@ def gen_Zapit_byte_tuple(trial_state_command, arg_keys_dict, arg_values_dict):
         else: 
             conditionNum_int = 255
             conditionNum_byte = conditionNum_int.to_bytes(1, 'big')
+        if arg_keys_dict["stimDuration"] == True:
+            stimDuration = arg_values_dict["stimDuration"]
+        if arg_keys_dict["laserPower"] == True:
+            laserPower_mW = arg_values_dict["laserPower"]
+            
+        if arg_keys_dict["startDelaySeconds"] == True:
+            startDelaySeconds = arg_values_dict["startDelaySeconds"]
     if [k for k, v in trial_state_commands_dict.items() if v == trial_state_command][0] == "sendsamples": # if trial_state_command = "sendsamples"
         zapit_com_bytes = state_command_byte + arg_keys_byte + arg_values_byte + conditionNum_byte + \
                       float_to_byte_list(stimDuration) + float_to_byte_list(laserPower_mW) + float_to_byte_list(startDelaySeconds)        
