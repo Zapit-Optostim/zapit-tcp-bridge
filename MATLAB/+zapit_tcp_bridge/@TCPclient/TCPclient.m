@@ -136,7 +136,7 @@ classdef TCPclient < handle
             %
             % Purpose
             % Returns the state of the Zapit server: 'idle', 'active', or 'rampdown'
-            % In the event of an error or an otherwise unknown state, the srting
+            % In the event of an error or an otherwise unknown state, the string
             % ' UNKNOWN_STATE ' is returned. Note the empty first and last characters.
             %
             % Inputs
@@ -295,9 +295,6 @@ classdef TCPclient < handle
             %    response_tuple: [2 1 255 255 255 255]
             %           success: 1
             %     statusMessage: 'MessageMatches'
-
-
-
 
             if length(bytes_to_send) ~= zapit_tcp_bridge.constants.numBytesToSend
                 fprintf('Command message must be %d bytes long but was %d bytes\n', ...
