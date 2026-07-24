@@ -48,6 +48,8 @@ If the command was `1` then byte `9` is the presented condition number and byte 
 
 Otherwise, byte `9` carries the return value yielded by Zapit and remaining five bytes are unused (default value of 255).
 
+**Value range of byte `9`.** Byte `9` is a single unsigned byte (`uint8`, range 0–255) and the value `255` is reserved to mean "error" or "unused". Any value carried here — the presented condition number for command `1`, or the return value for other commands such as the number of conditions (command `4`) — must therefore lie in the range `0–254` (condition indices are `1–254`). A stimulus configuration must not contain more than **254 conditions**: a count of 255 or greater cannot be distinguished from the error sentinel.
+
 For example, a return message of `{-1, 1, 255, 255, 255, 255, 255, 255}` indicates that `sendSamples` was called but returned an error.
 
 
